@@ -1,0 +1,2919 @@
+{
+  "packageAddress": "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f",
+  "network": "testnet",
+  "fullnodeUrl": "https://api.testnet.aptoslabs.com/v1",
+  "fetchedAt": "2026-02-12T02:22:21.338518Z",
+  "abis": {
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::initialize": {
+      "name": "initialize",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::increment_time": {
+      "name": "increment_time",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_max_referral_codes_for_address": {
+      "name": "set_max_referral_codes_for_address",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_max_usage_per_referral_code_for_address": {
+      "name": "set_max_usage_per_referral_code_for_address",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::delist_market": {
+      "name": "delist_market",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::option::Option<0x1::string::String>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_blp_margin_as_profit_percentage": {
+      "name": "set_blp_margin_as_profit_percentage",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::admin_register_referral_code": {
+      "name": "admin_register_referral_code",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "0x1::string::String"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::admin_register_referrer": {
+      "name": "admin_register_referrer",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "0x1::string::String"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::update_fee_config": {
+      "name": "update_fee_config",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "vector<u128>",
+        "vector<u64>",
+        "vector<u64>",
+        "u128",
+        "vector<u64>",
+        "vector<u64>",
+        "u64",
+        "u64",
+        "bool",
+        "u64",
+        "u64",
+        "u128",
+        "u128"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::drain_async_queue": {
+      "name": "drain_async_queue",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_to_account_creation_allow_list": {
+      "name": "add_to_account_creation_allow_list",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "vector<address>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::decrease_market_notional_open_interest": {
+      "name": "decrease_market_notional_open_interest",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::decrease_market_open_interest": {
+      "name": "decrease_market_open_interest",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::delist_market_with_mark_price": {
+      "name": "delist_market_with_mark_price",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "0x1::option::Option<0x1::string::String>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::increase_market_notional_open_interest": {
+      "name": "increase_market_notional_open_interest",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::increase_market_open_interest": {
+      "name": "increase_market_open_interest",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::register_market_with_composite_oracle_primary_chainlink": {
+      "name": "register_market_with_composite_oracle_primary_chainlink",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::string::String",
+        "u8",
+        "u64",
+        "u64",
+        "u64",
+        "u64",
+        "u8",
+        "u64",
+        "bool",
+        "vector<u8>",
+        "u64",
+        "u8",
+        "u64",
+        "u64",
+        "u64",
+        "u8"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::register_market_with_composite_oracle_primary_pyth": {
+      "name": "register_market_with_composite_oracle_primary_pyth",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::string::String",
+        "u8",
+        "u64",
+        "u64",
+        "u64",
+        "u64",
+        "u8",
+        "u64",
+        "bool",
+        "vector<u8>",
+        "u64",
+        "u64",
+        "u8",
+        "u64",
+        "u64",
+        "u64",
+        "u8"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::register_market_with_internal_oracle": {
+      "name": "register_market_with_internal_oracle",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::string::String",
+        "u8",
+        "u64",
+        "u64",
+        "u64",
+        "u64",
+        "u8",
+        "u64",
+        "bool",
+        "u64",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::register_market_with_pyth_oracle": {
+      "name": "register_market_with_pyth_oracle",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::string::String",
+        "u8",
+        "u64",
+        "u64",
+        "u64",
+        "u64",
+        "u8",
+        "u64",
+        "bool",
+        "vector<u8>",
+        "u64",
+        "u64",
+        "u8"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_backstop_liquidator_high_watermark": {
+      "name": "set_backstop_liquidator_high_watermark",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "i64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_invite_only_account_creation": {
+      "name": "set_invite_only_account_creation",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_allowlist_only": {
+      "name": "set_market_allowlist_only",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "vector<address>",
+        "0x1::option::Option<0x1::string::String>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_cooldown_period_ms": {
+      "name": "set_market_cooldown_period_ms",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_halted": {
+      "name": "set_market_halted",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::option::Option<0x1::string::String>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_margin_call_backstop_pct": {
+      "name": "set_market_margin_call_backstop_pct",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_margin_call_fee_pct": {
+      "name": "set_market_margin_call_fee_pct",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_max_leverage": {
+      "name": "set_market_max_leverage",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u8"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_max_leverage_with_fee_scaling": {
+      "name": "set_market_max_leverage_with_fee_scaling",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u8"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_open": {
+      "name": "set_market_open",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::option::Option<0x1::string::String>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_reduce_only": {
+      "name": "set_market_reduce_only",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "vector<address>",
+        "0x1::option::Option<0x1::string::String>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_slippage_increment_pct": {
+      "name": "set_market_slippage_increment_pct",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_starting_slippage_pct": {
+      "name": "set_market_starting_slippage_pct",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_unrealized_pnl_haircut": {
+      "name": "set_market_unrealized_pnl_haircut",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_withdrawable_margin_leverage": {
+      "name": "set_market_withdrawable_margin_leverage",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u8"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_access_control_admin": {
+      "name": "add_access_control_admin",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_access_control_guardian": {
+      "name": "add_access_control_guardian",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_fee_config_governor": {
+      "name": "add_fee_config_governor",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_global_pause_guardian": {
+      "name": "add_global_pause_guardian",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_global_unpause_council": {
+      "name": "add_global_unpause_council",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_invite_only_referral_management_permission": {
+      "name": "add_invite_only_referral_management_permission",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_market_delist_council": {
+      "name": "add_market_delist_council",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_market_list_admin": {
+      "name": "add_market_list_admin",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_market_mode_guardian": {
+      "name": "add_market_mode_guardian",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_market_open_admin": {
+      "name": "add_market_open_admin",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_market_risk_governor": {
+      "name": "add_market_risk_governor",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_market_risk_tightener": {
+      "name": "add_market_risk_tightener",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_oracle_and_mark_update_permission": {
+      "name": "add_oracle_and_mark_update_permission",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_order_management_admin": {
+      "name": "add_order_management_admin",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_vault_global_config_admin": {
+      "name": "add_vault_global_config_admin",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::add_withdraw_rate_limit_governor": {
+      "name": "add_withdraw_rate_limit_governor",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::admin_register_affiliate": {
+      "name": "admin_register_affiliate",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::configure_withdraw_rate_limit": {
+      "name": "configure_withdraw_rate_limit",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "bool",
+        "u64",
+        "u64",
+        "u64",
+        "u8"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::init_account_status_cache_for_subaccount": {
+      "name": "init_account_status_cache_for_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::pause_global_exchange": {
+      "name": "pause_global_exchange",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_access_control_admin": {
+      "name": "remove_access_control_admin",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_access_control_guardian": {
+      "name": "remove_access_control_guardian",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_fee_config_governor": {
+      "name": "remove_fee_config_governor",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_global_pause_guardian": {
+      "name": "remove_global_pause_guardian",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_global_unpause_council": {
+      "name": "remove_global_unpause_council",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_invite_only_referral_management_permission": {
+      "name": "remove_invite_only_referral_management_permission",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_market_delist_council": {
+      "name": "remove_market_delist_council",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_market_list_admin": {
+      "name": "remove_market_list_admin",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_market_mode_guardian": {
+      "name": "remove_market_mode_guardian",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_market_open_admin": {
+      "name": "remove_market_open_admin",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_market_risk_governor": {
+      "name": "remove_market_risk_governor",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_market_risk_tightener": {
+      "name": "remove_market_risk_tightener",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_oracle_and_mark_update_permission": {
+      "name": "remove_oracle_and_mark_update_permission",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_order_management_admin": {
+      "name": "remove_order_management_admin",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_vault_global_config_admin": {
+      "name": "remove_vault_global_config_admin",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::remove_withdraw_rate_limit_governor": {
+      "name": "remove_withdraw_rate_limit_governor",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_global_max_builder_fee": {
+      "name": "set_global_max_builder_fee",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_adl_trigger_threshold": {
+      "name": "set_market_adl_trigger_threshold",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_book_oracle_ratio_cap_bps": {
+      "name": "set_market_book_oracle_ratio_cap_bps",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_market_funding_rate_pause_timeout_microseconds": {
+      "name": "set_market_funding_rate_pause_timeout_microseconds",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::set_withdraw_rate_limit_enabled": {
+      "name": "set_withdraw_rate_limit_enabled",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::unpause_global_exchange": {
+      "name": "unpause_global_exchange",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::update_mark_for_chainlink_oracle": {
+      "name": "update_mark_for_chainlink_oracle",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "vector<u8>",
+        "vector<address>",
+        "vector<address>",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::update_mark_for_composite_chainlink": {
+      "name": "update_mark_for_composite_chainlink",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<vector<u8>>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "vector<address>",
+        "vector<address>",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::update_mark_for_internal_oracle": {
+      "name": "update_mark_for_internal_oracle",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "vector<address>",
+        "vector<address>",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::update_mark_for_pyth_oracle": {
+      "name": "update_mark_for_pyth_oracle",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "vector<u8>",
+        "vector<address>",
+        "vector<address>",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::update_withdraw_absolute_rate_limit": {
+      "name": "update_withdraw_absolute_rate_limit",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::update_withdraw_rate_limit_bps": {
+      "name": "update_withdraw_rate_limit_bps",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::update_withdraw_window_duration": {
+      "name": "update_withdraw_window_duration",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::public_apis::close_delisted_position": {
+      "name": "close_delisted_position",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::public_apis::liquidate_positions": {
+      "name": "liquidate_positions",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "vector<address>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::public_apis::liquidate_position": {
+      "name": "liquidate_position",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::public_apis::process_perp_collateral_withdrawals": {
+      "name": "process_perp_collateral_withdrawals",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "u32"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::public_apis::process_perp_market_pending_requests": {
+      "name": "process_perp_market_pending_requests",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u32"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::primary_subaccount": {
+      "name": "primary_subaccount",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "address"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::primary_subaccount_object": {
+      "name": "primary_subaccount_object",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::seeded_subacccount_address": {
+      "name": "seeded_subacccount_address",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "vector<u8>"
+      ],
+      "return": [
+        "address"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::view_delegated_permissions": {
+      "name": "view_delegated_permissions",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>"
+      ],
+      "return": [
+        "0x1::ordered_map::OrderedMap<address, 0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::DelegatedPermissions>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::view_is_subaccount_active": {
+      "name": "view_is_subaccount_active",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::register_referral_code": {
+      "name": "register_referral_code",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::string::String"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::register_referrer": {
+      "name": "register_referrer",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::string::String"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::configure_user_settings_for_market": {
+      "name": "configure_user_settings_for_market",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "bool",
+        "u8"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::transfer_collateral_to_isolated_position": {
+      "name": "transfer_collateral_to_isolated_position",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "bool",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::deposit_to_isolated_position_collateral": {
+      "name": "deposit_to_isolated_position_collateral",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::withdraw_from_isolated_position_collateral": {
+      "name": "withdraw_from_isolated_position_collateral",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::cancel_tp_sl_order_for_position": {
+      "name": "cancel_tp_sl_order_for_position",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u128"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::place_tp_sl_order_for_position": {
+      "name": "place_tp_sl_order_for_position",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<address>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::deactivate_subaccount": {
+      "name": "deactivate_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::delegate_ability_to_sub_delegate_to_for_subaccount": {
+      "name": "delegate_ability_to_sub_delegate_to_for_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "address",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::delegate_trading_to_for_subaccount": {
+      "name": "delegate_trading_to_for_subaccount",
+      "visibility": "friend",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "address",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::deposit_to_subaccount_at": {
+      "name": "deposit_to_subaccount_at",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::reactivate_subaccount": {
+      "name": "reactivate_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::revoke_all_delegations": {
+      "name": "revoke_all_delegations",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::revoke_delegation": {
+      "name": "revoke_delegation",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::transfer_collateral_between_subaccounts": {
+      "name": "transfer_collateral_between_subaccounts",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::withdraw_from_subaccount": {
+      "name": "withdraw_from_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::contribute_to_vault": {
+      "name": "contribute_to_vault",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "address",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::redeem_from_vault": {
+      "name": "redeem_from_vault",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::add_delegated_trader_and_deposit_to_subaccount": {
+      "name": "add_delegated_trader_and_deposit_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "u64",
+        "address",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::approve_max_builder_fee_for_subaccount": {
+      "name": "approve_max_builder_fee_for_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::cancel_bulk_order_to_subaccount": {
+      "name": "cancel_bulk_order_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::cancel_client_order_to_subaccount": {
+      "name": "cancel_client_order_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::string::String",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::cancel_order_to_subaccount": {
+      "name": "cancel_order_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "u128",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::cancel_twap_orders_to_subaccount": {
+      "name": "cancel_twap_orders_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u128"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::create_new_subaccount": {
+      "name": "create_new_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::place_bulk_orders_to_subaccount": {
+      "name": "place_bulk_orders_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "vector<u64>",
+        "vector<u64>",
+        "vector<u64>",
+        "vector<u64>",
+        "0x1::option::Option<address>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::place_market_order_to_subaccount": {
+      "name": "place_market_order_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "bool",
+        "bool",
+        "0x1::option::Option<0x1::string::String>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<address>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::place_order_to_subaccount": {
+      "name": "place_order_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "u64",
+        "bool",
+        "u8",
+        "bool",
+        "0x1::option::Option<0x1::string::String>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<address>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::place_twap_order_to_subaccount": {
+      "name": "place_twap_order_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "bool",
+        "bool",
+        "u64",
+        "u64",
+        "0x1::option::Option<address>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::place_twap_order_to_subaccount_v2": {
+      "name": "place_twap_order_to_subaccount_v2",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "bool",
+        "bool",
+        "0x1::option::Option<0x1::string::String>",
+        "u64",
+        "u64",
+        "0x1::option::Option<address>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::revoke_max_builder_fee_for_subaccount": {
+      "name": "revoke_max_builder_fee_for_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::update_client_order_to_subaccount": {
+      "name": "update_client_order_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::string::String",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "u64",
+        "bool",
+        "u8",
+        "bool",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<address>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::update_order_to_subaccount": {
+      "name": "update_order_to_subaccount",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "u128",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u64",
+        "u64",
+        "bool",
+        "u8",
+        "bool",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<address>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::update_sl_order_for_position": {
+      "name": "update_sl_order_for_position",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "u128",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::update_tp_order_for_position": {
+      "name": "update_tp_order_for_position",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "u128",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_bulk_order": {
+      "name": "get_bulk_order",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "address"
+      ],
+      "return": [
+        "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::BulkOrderView"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_oracle_price": {
+      "name": "get_oracle_price",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_market_mode": {
+      "name": "get_market_mode",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market_config::MarketMode"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_oracle_source": {
+      "name": "get_oracle_source",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::oracle::OracleSource"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_global_primary_store_balance": {
+      "name": "get_global_primary_store_balance",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_global_secondary_store_balance": {
+      "name": "get_global_secondary_store_balance",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::primary_asset_metadata": {
+      "name": "primary_asset_metadata",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_mark_and_oracle_price": {
+      "name": "get_mark_and_oracle_price",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64",
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_mark_price": {
+      "name": "get_mark_price",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_adl_tracker_status": {
+      "name": "get_adl_tracker_status",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::backstop_liquidator_profit_tracker::AdlTrackerStatus"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::backstop_liquidator": {
+      "name": "backstop_liquidator",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "address"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_max_leverage": {
+      "name": "market_max_leverage",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u8"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::cross_position_status": {
+      "name": "cross_position_status",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_positions::AccountStatusDetailed"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_account_net_asset_value": {
+      "name": "get_account_net_asset_value",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "i64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_position_funding_index_at_last_update": {
+      "name": "get_position_funding_index_at_last_update",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "i128"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_position_is_long": {
+      "name": "get_position_is_long",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_position_size": {
+      "name": "get_position_size",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_position_unrealized_funding_amount_before_last_update": {
+      "name": "get_position_unrealized_funding_amount_before_last_update",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "i64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_position_unrealized_funding_cost": {
+      "name": "get_position_unrealized_funding_cost",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "i64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::has_any_assets_or_positions": {
+      "name": "has_any_assets_or_positions",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::has_position": {
+      "name": "has_position",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::is_position_isolated": {
+      "name": "is_position_isolated",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::is_position_liquidatable": {
+      "name": "is_position_liquidatable",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::list_positions": {
+      "name": "list_positions",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "vector<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::position_view_types::PositionViewInfo>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::view_position": {
+      "name": "view_position",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "0x1::option::Option<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::position_view_types::PositionViewInfo>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_current_open_interest": {
+      "name": "get_current_open_interest",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_max_notional_open_interest": {
+      "name": "get_max_notional_open_interest",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_cross_total_collateral_value": {
+      "name": "get_cross_total_collateral_value",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "i64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_isolated_position_total_collateral_value": {
+      "name": "get_isolated_position_total_collateral_value",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "i64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::max_allowed_withdraw_from_cross": {
+      "name": "max_allowed_withdraw_from_cross",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_rate_limit_status": {
+      "name": "get_rate_limit_status",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ],
+      "return": [
+        "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::async_withdraw_queue::RateLimitStatus"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_async_queue_length": {
+      "name": "get_async_queue_length",
+      "visibility": "friend",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_min_size": {
+      "name": "market_min_size",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_lot_size": {
+      "name": "market_lot_size",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::collateral_balance_decimals": {
+      "name": "collateral_balance_decimals",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u8"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_blp_pnl": {
+      "name": "get_blp_pnl",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "i64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_max_open_interest_delta": {
+      "name": "get_max_open_interest_delta",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_oracle_internal_snapshot": {
+      "name": "get_oracle_internal_snapshot",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::OracleInternalSnapshot"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_position_avg_price": {
+      "name": "get_position_avg_price",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_position_entry_price_times_size_sum": {
+      "name": "get_position_entry_price_times_size_sum",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u128"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::get_remaining_size_for_order": {
+      "name": "get_remaining_size_for_order",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>",
+        "u128"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::is_exchange_open": {
+      "name": "is_exchange_open",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::is_market_open": {
+      "name": "is_market_open",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::is_supported_collateral": {
+      "name": "is_supported_collateral",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::list_markets": {
+      "name": "list_markets",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "vector<address>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_cooldown_period_ms": {
+      "name": "market_cooldown_period_ms",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_margin_call_fee_pct": {
+      "name": "market_margin_call_fee_pct",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_name": {
+      "name": "market_name",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "0x1::string::String"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_slippage_increment_pct": {
+      "name": "market_slippage_increment_pct",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_starting_slippage_pct": {
+      "name": "market_starting_slippage_pct",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_sz_decimals": {
+      "name": "market_sz_decimals",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u8"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::market_ticker_size": {
+      "name": "market_ticker_size",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_engine::view_position_status": {
+      "name": "view_position_status",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_market::PerpMarket>"
+      ],
+      "return": [
+        "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_positions::AccountStatusDetailed"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::burn": {
+      "name": "burn",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::mint": {
+      "name": "mint",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::add_admin": {
+      "name": "add_admin",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::available_restricted_mint_for": {
+      "name": "available_restricted_mint_for",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::can_mint": {
+      "name": "can_mint",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::can_restricted_mint": {
+      "name": "can_restricted_mint",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::change_restricted_mint_settings": {
+      "name": "change_restricted_mint_settings",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::enter_trading_competition": {
+      "name": "enter_trading_competition",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::get_admin_count": {
+      "name": "get_admin_count",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::is_admin": {
+      "name": "is_admin",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::is_public_minting_allowed": {
+      "name": "is_public_minting_allowed",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::mints_remaining": {
+      "name": "mints_remaining",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::remove_admin": {
+      "name": "remove_admin",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint": {
+      "name": "restricted_mint",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint_daily_reset_timestamp": {
+      "name": "restricted_mint_daily_reset_timestamp",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint_daily_reset_timestamp_for": {
+      "name": "restricted_mint_daily_reset_timestamp_for",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::set_public_minting": {
+      "name": "set_public_minting",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::get_vault_admin": {
+      "name": "get_vault_admin",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": [
+        "address"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::get_vault_contribution_asset_type": {
+      "name": "get_vault_contribution_asset_type",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": [
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::get_vault_net_asset_value": {
+      "name": "get_vault_net_asset_value",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::get_vault_net_asset_value_in_contribution_asset": {
+      "name": "get_vault_net_asset_value_in_contribution_asset",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::get_vault_num_shares": {
+      "name": "get_vault_num_shares",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::get_vault_portfolio_subaccounts": {
+      "name": "get_vault_portfolio_subaccounts",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": [
+        "vector<address>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::get_vault_share_asset_type": {
+      "name": "get_vault_share_asset_type",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": [
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault_api::distribute_fees": {
+      "name": "distribute_fees",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault_api::process_pending_requests": {
+      "name": "process_pending_requests",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "u32"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault_api::activate_vault": {
+      "name": "activate_vault",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault_api::create_and_fund_vault": {
+      "name": "create_and_fund_vault",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts::Subaccount>",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>",
+        "0x1::string::String",
+        "0x1::string::String",
+        "vector<0x1::string::String>",
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String",
+        "u64",
+        "u64",
+        "u64",
+        "u64",
+        "bool",
+        "bool"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault_api::get_max_synchronous_redemption": {
+      "name": "get_max_synchronous_redemption",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::Vault>"
+      ],
+      "return": [
+        "u64"
+      ]
+    }
+  },
+  "errors": [],
+  "summary": {
+    "totalModules": 9,
+    "totalFunctions": 212,
+    "successful": 212,
+    "failed": 0
+  },
+  "modules": [
+    "admin_apis",
+    "public_apis",
+    "dex_accounts",
+    "dex_accounts_entry",
+    "dex_accounts_vault_extension",
+    "perp_engine",
+    "usdc",
+    "vault",
+    "vault_api"
+  ]
+}

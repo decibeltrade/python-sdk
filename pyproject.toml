@@ -1,0 +1,82 @@
+[project]
+name = "decibel-python-sdk"
+version = "0.1.0"
+description = "Python SDK for interacting with Decibel, a fully on-chain trading engine built on Aptos."
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Decibel", email = "support@decibel.trade" }
+]
+requires-python = ">=3.11"
+keywords = ["decibel", "aptos", "blockchain", "trading", "sdk"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "aptos-sdk>=0.11.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.0.0",
+    "websockets>=14.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.13",
+    "pyright>=1.1.399",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=0.24.0",
+    "pre-commit>=4.0.0",
+]
+
+[tool.uv.build-backend]
+module-name = "decibel"
+data-includes = ["src/decibel/abi/json/*.json"]
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "TC",   # flake8-type-checking
+]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["pydantic.Field"]
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["decibel"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
