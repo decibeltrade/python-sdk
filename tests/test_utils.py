@@ -25,6 +25,12 @@ class TestAmountToChainUnits:
     def test_small_amount(self) -> None:
         assert amount_to_chain_units(0.000001) == 1
 
+    def test_no_float_truncation(self) -> None:
+        assert amount_to_chain_units(0.29, decimals=2) == 29
+        assert amount_to_chain_units(0.57, decimals=2) == 57
+        assert amount_to_chain_units(0.57, decimals=4) == 5700
+        assert amount_to_chain_units(1.14, decimals=4) == 11400
+
 
 class TestChainUnitsToAmount:
     def test_basic_conversion(self) -> None:

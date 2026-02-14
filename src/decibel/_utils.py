@@ -382,7 +382,7 @@ def round_to_valid_order_size(
 
 def amount_to_chain_units(amount: float, decimals: int = 6) -> int:
     """Convert a decimal amount to chain units (e.g., 5.67 USDC -> 5670000)."""
-    return int(amount * (10**decimals))
+    return round(amount * (10**decimals))
 
 
 def chain_units_to_amount(chain_units: int, decimals: int = 6) -> float:
