@@ -1,6 +1,6 @@
 [project]
 name = "decibel-python-sdk"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python SDK for interacting with Decibel, a fully on-chain trading engine built on Aptos."
 readme = "README.md"
 license = "MIT"
