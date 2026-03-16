@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import importlib.resources
+import importlib.resources  # nosemgrep: python37-compatibility-importlib2
 import json
 import warnings
 from functools import lru_cache

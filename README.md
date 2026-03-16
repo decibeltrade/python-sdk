@@ -105,7 +105,7 @@ async def main():
         price=amount_to_chain_units(100000.0, btc.px_decimals),
         size=amount_to_chain_units(0.001, btc.sz_decimals),
         is_buy=True,
-        time_in_force=TimeInForce.GoodTilCancelled,
+        time_in_force=TimeInForce.GoodTillCanceled,
         is_reduce_only=False,
     )
 
@@ -199,12 +199,12 @@ write = DecibelWriteDex(config, account, opts)
 # Orders
 write.place_order(market_name, price, size, is_buy, time_in_force, is_reduce_only)
 write.cancel_order(market_name, order_id)
-write.cancel_order_by_client_id(market_name, client_order_id)
+write.cancel_client_order(market_name, client_order_id)
 
 # TP/SL
-write.place_tp_sl_for_position(market_name, tp_price, sl_price, ...)
-write.update_tp_order(market_name, order_id, new_trigger_price, ...)
-write.update_sl_order(market_name, order_id, new_trigger_price, ...)
+write.place_tp_sl_order_for_position(market_name, tp_price, sl_price, ...)
+write.update_tp_order_for_position(market_name, order_id, new_trigger_price, ...)
+write.update_sl_order_for_position(market_name, order_id, new_trigger_price, ...)
 
 # Collateral
 write.deposit(amount)

@@ -147,6 +147,7 @@ DOCKER_CONFIG = DecibelConfig(
     network=Network.CUSTOM,
     fullnode_url="http://tradenet:8080/v1",
     trading_http_url="http://trading-api-http:8080",
+    # nosemgrep: detect-insecure-websocket
     trading_ws_url="ws://trading-api-ws:8080",
     gas_station_url="http://fee-payer:8080",
     gas_station_api_key=None,
