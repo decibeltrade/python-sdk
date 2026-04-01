@@ -18,6 +18,7 @@ from aptos_sdk.ed25519 import PublicKey as Ed25519PublicKey
 from aptos_sdk.ed25519 import Signature as Ed25519Signature
 from aptos_sdk.transactions import FeePayerRawTransaction, SignedTransaction
 
+from ._constants import DEFAULT_TX_TIMEOUT_SECS
 from ._fee_pay import (
     PendingTransactionResponse,
     submit_fee_paid_transaction,
@@ -183,6 +184,7 @@ class BaseSDK:
         self,
         payload: InputEntryFunctionData,
         account_override: Account | None = None,
+        timeout_secs: float | None = None,  # Uses DEFAULT_TX_TIMEOUT_SECS if None
     ) -> dict[str, Any]:
         signer = account_override if account_override is not None else self._account
         sender = signer.address()
@@ -218,7 +220,7 @@ class BaseSDK:
 
         pending_tx = await self.submit_tx(transaction, sender_authenticator)
 
-        return await self._wait_for_transaction(pending_tx.hash)
+        return await self._wait_for_transaction(pending_tx.hash, timeout_secs=timeout_secs)
 
     def _sign_transaction(
         self,
@@ -313,9 +315,11 @@ class BaseSDK:
     async def _wait_for_transaction(
         self,
         tx_hash: str,
-        timeout_secs: float = 30.0,
+        timeout_secs: float | None = None,  # Uses DEFAULT_TX_TIMEOUT_SECS if None
         poll_interval_secs: float = 1.0,
     ) -> dict[str, Any]:
+        if timeout_secs is None:
+            timeout_secs = DEFAULT_TX_TIMEOUT_SECS
         url = f"{self._config.fullnode_url}/transactions/by_hash/{tx_hash}"
         headers = self._build_node_headers()
         start_time = time.time()
@@ -508,6 +512,7 @@ class BaseSDKSync:
         self,
         payload: InputEntryFunctionData,
         account_override: Account | None = None,
+        timeout_secs: float | None = None,  # Uses DEFAULT_TX_TIMEOUT_SECS if None
     ) -> dict[str, Any]:
         signer = account_override if account_override is not None else self._account
         sender = signer.address()
@@ -543,7 +548,7 @@ class BaseSDKSync:
 
         pending_tx = self.submit_tx(transaction, sender_authenticator)
 
-        return self._wait_for_transaction(pending_tx.hash)
+        return self._wait_for_transaction(pending_tx.hash, timeout_secs=timeout_secs)
 
     def _sign_transaction(
         self,
@@ -645,9 +650,11 @@ class BaseSDKSync:
     def _wait_for_transaction(
         self,
         tx_hash: str,
-        timeout_secs: float = 30.0,
+        timeout_secs: float | None = None,  # Uses DEFAULT_TX_TIMEOUT_SECS if None
         poll_interval_secs: float = 1.0,
     ) -> dict[str, Any]:
+        if timeout_secs is None:
+            timeout_secs = DEFAULT_TX_TIMEOUT_SECS
         url = f"{self._config.fullnode_url}/transactions/by_hash/{tx_hash}"
         headers = self._build_node_headers()
         start_time = time.time()

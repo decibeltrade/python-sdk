@@ -11,6 +11,7 @@ __all__ = [
     "Deployment",
     "DecibelConfig",
     "DEFAULT_COMPAT_VERSION",
+    "DEFAULT_TX_TIMEOUT_SECS",
     "MAINNET_CONFIG",
     "NETNA_CONFIG",
     "TESTNET_CONFIG",
@@ -21,6 +22,10 @@ __all__ = [
     "get_testc_address",
     "get_perp_engine_global_address",
 ]
+
+# Configurable timeout for transaction confirmation
+# Default is 30 seconds
+DEFAULT_TX_TIMEOUT_SECS = 30.0
 
 
 class Network(str, Enum):
