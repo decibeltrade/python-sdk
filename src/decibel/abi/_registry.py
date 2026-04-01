@@ -19,6 +19,7 @@ __all__ = [
 
 CHAIN_ID_NETNA = 208
 CHAIN_ID_TESTNET = 2
+CHAIN_ID_MAINNET = 1
 
 
 @lru_cache(maxsize=4)
@@ -31,7 +32,9 @@ def _load_abi_json(filename: str) -> ABIData:
 
 
 def get_abi_data(chain_id: int | None) -> ABIData:
-    if chain_id == CHAIN_ID_NETNA:
+    if chain_id == CHAIN_ID_MAINNET:
+        return _load_abi_json("mainnet.json")
+    elif chain_id == CHAIN_ID_NETNA:
         return _load_abi_json("netna.json")
     elif chain_id == CHAIN_ID_TESTNET:
         return _load_abi_json("testnet.json")
