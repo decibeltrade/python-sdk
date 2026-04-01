@@ -12,7 +12,7 @@ from typing import Any
 from aptos_sdk.account_address import AccountAddress
 from aptos_sdk.async_client import RestClient
 
-from decibel._constants import NAMED_CONFIGS, NETNA_CONFIG, TESTNET_CONFIG, DecibelConfig
+from decibel._constants import MAINNET_CONFIG, NAMED_CONFIGS, NETNA_CONFIG, TESTNET_CONFIG, DecibelConfig
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,8 @@ def get_abi_filename(config: DecibelConfig) -> str:
         return "netna.json"
     elif config == TESTNET_CONFIG:
         return "testnet.json"
+    elif config == MAINNET_CONFIG:
+        return "mainnet.json"
     else:
         return f"{config.network.value}.json"
 
@@ -167,14 +169,14 @@ def cli() -> None:
         "networks",
         nargs="*",
         default=["netna"],
-        help="Networks to fetch ABIs for (netna, testnet, all). Default: netna",
+        help="Networks to fetch ABIs for (netna, testnet, mainnet, all). Default: netna",
     )
 
     args = parser.parse_args()
 
     networks: list[str] = args.networks
     if "all" in networks:
-        networks = ["netna", "testnet"]
+        networks = ["netna", "testnet", "mainnet"]
 
     asyncio.run(main(networks))
 
