@@ -177,7 +177,7 @@ def cli() -> None:
         "networks",
         nargs="*",
         default=["testnet"],
-        help="Networks to fetch ABIs for (testnet, testnet, mainnet, all). Default: testnet",
+        help="Networks to fetch ABIs for (testnet, mainnet, all). Default: testnet",
     )
 
     args = parser.parse_args()
