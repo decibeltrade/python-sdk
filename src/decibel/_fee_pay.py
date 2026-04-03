@@ -34,6 +34,7 @@ async def submit_fee_paid_transaction(
     sender_authenticator: AccountAuthenticator,
     *,
     client: httpx.AsyncClient | None = None,
+    txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
     if config.gas_station_api_key:
         return await _submit_via_gas_station_api(
@@ -41,6 +42,7 @@ async def submit_fee_paid_transaction(
             transaction,
             sender_authenticator,
             client=client,
+            txn_submit_timeout=txn_submit_timeout,
         )
 
     if config.gas_station_url:
@@ -49,6 +51,7 @@ async def submit_fee_paid_transaction(
             transaction,
             sender_authenticator,
             client=client,
+            txn_submit_timeout=txn_submit_timeout,
         )
 
     raise ValueError("Either gas_station_api_key or gas_station_url must be provided")
@@ -60,6 +63,7 @@ def submit_fee_paid_transaction_sync(
     sender_authenticator: AccountAuthenticator,
     *,
     client: httpx.Client | None = None,
+    txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
     if config.gas_station_api_key:
         return _submit_via_gas_station_api_sync(
@@ -67,6 +71,7 @@ def submit_fee_paid_transaction_sync(
             transaction,
             sender_authenticator,
             client=client,
+            txn_submit_timeout=txn_submit_timeout,
         )
 
     if config.gas_station_url:
@@ -75,6 +80,7 @@ def submit_fee_paid_transaction_sync(
             transaction,
             sender_authenticator,
             client=client,
+            txn_submit_timeout=txn_submit_timeout,
         )
 
     raise ValueError("Either gas_station_api_key or gas_station_url must be provided")
@@ -86,6 +92,7 @@ async def _submit_via_gas_station_api(
     sender_authenticator: AccountAuthenticator,
     *,
     client: httpx.AsyncClient | None = None,
+    txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
     base_url = _get_default_gas_station_url(config)
     url = f"{base_url}/api/transaction/signAndSubmit"
@@ -115,11 +122,14 @@ async def _submit_via_gas_station_api(
         "Authorization": f"Bearer {config.gas_station_api_key}",
     }
 
+    async def _do_submit(c: httpx.AsyncClient) -> httpx.Response:
+        return await c.post(url, json=body, headers=headers, timeout=txn_submit_timeout)
+
     if client is not None:
-        response = await client.post(url, json=body, headers=headers)
+        response = await _do_submit(client)
     else:
         async with httpx.AsyncClient() as temp_client:
-            response = await temp_client.post(url, json=body, headers=headers)
+            response = await _do_submit(temp_client)
 
     if not response.is_success:
         raise ValueError(f"Gas station API error: {response.status_code} - {response.text}")
@@ -143,6 +153,7 @@ def _submit_via_gas_station_api_sync(
     sender_authenticator: AccountAuthenticator,
     *,
     client: httpx.Client | None = None,
+    txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
     base_url = _get_default_gas_station_url(config)
     url = f"{base_url}/api/transaction/signAndSubmit"
@@ -172,11 +183,14 @@ def _submit_via_gas_station_api_sync(
         "Authorization": f"Bearer {config.gas_station_api_key}",
     }
 
+    def _do_submit(c: httpx.Client) -> httpx.Response:
+        return c.post(url, json=body, headers=headers, timeout=txn_submit_timeout)
+
     if client is not None:
-        response = client.post(url, json=body, headers=headers)
+        response = _do_submit(client)
     else:
         with httpx.Client() as temp_client:
-            response = temp_client.post(url, json=body, headers=headers)
+            response = _do_submit(temp_client)
 
     if not response.is_success:
         raise ValueError(f"Gas station API error: {response.status_code} - {response.text}")
@@ -200,6 +214,7 @@ async def _submit_via_legacy_fee_payer(
     sender_authenticator: AccountAuthenticator,
     *,
     client: httpx.AsyncClient | None = None,
+    txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
     url = f"{config.gas_station_url}/transactions"
 
@@ -219,10 +234,10 @@ async def _submit_via_legacy_fee_payer(
     headers = {"Content-Type": "application/json"}
 
     if client is not None:
-        response = await client.post(url, json=body, headers=headers)
+        response = await client.post(url, json=body, headers=headers, timeout=txn_submit_timeout)
     else:
         async with httpx.AsyncClient() as temp_client:
-            response = await temp_client.post(url, json=body, headers=headers)
+            response = await temp_client.post(url, json=body, headers=headers, timeout=txn_submit_timeout)
 
     # TODO: Improve error handling
     if not response.is_success:
@@ -245,6 +260,7 @@ def _submit_via_legacy_fee_payer_sync(
     sender_authenticator: AccountAuthenticator,
     *,
     client: httpx.Client | None = None,
+    txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
     url = f"{config.gas_station_url}/transactions"
 
@@ -264,10 +280,10 @@ def _submit_via_legacy_fee_payer_sync(
     headers = {"Content-Type": "application/json"}
 
     if client is not None:
-        response = client.post(url, json=body, headers=headers)
+        response = client.post(url, json=body, headers=headers, timeout=txn_submit_timeout)
     else:
         with httpx.Client() as temp_client:
-            response = temp_client.post(url, json=body, headers=headers)
+            response = temp_client.post(url, json=body, headers=headers, timeout=txn_submit_timeout)
 
     # TODO: Improve error handling
     if not response.is_success:

@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 from aptos_sdk.async_client import RestClient
+
+from ._exceptions import TxnConfirmError, TxnSubmitError
 from aptos_sdk.authenticator import (
     AccountAuthenticator,
     Authenticator,
@@ -18,7 +20,7 @@ from aptos_sdk.ed25519 import PublicKey as Ed25519PublicKey
 from aptos_sdk.ed25519 import Signature as Ed25519Signature
 from aptos_sdk.transactions import FeePayerRawTransaction, SignedTransaction
 
-from ._constants import DEFAULT_TX_TIMEOUT_SECS
+from ._constants import DEFAULT_TXN_CONFIRM_TIMEOUT, DEFAULT_TXN_SUBMIT_TIMEOUT
 from ._fee_pay import (
     PendingTransactionResponse,
     submit_fee_paid_transaction,
@@ -171,20 +173,27 @@ class BaseSDK:
         self,
         transaction: SimpleTransaction,
         sender_authenticator: AccountAuthenticator,
+        *,
+        txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
         if self._no_fee_payer:
-            return await self._submit_direct(transaction, sender_authenticator)
+            return await self._submit_direct(
+                transaction, sender_authenticator, txn_submit_timeout
+            )
         return await submit_fee_paid_transaction(
             self._config,
             transaction,
             sender_authenticator,
+            txn_submit_timeout=txn_submit_timeout,
         )
 
     async def _send_tx(
         self,
         payload: InputEntryFunctionData,
         account_override: Account | None = None,
-        timeout_secs: float | None = None,  # Uses DEFAULT_TX_TIMEOUT_SECS if None
+        *,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         signer = account_override if account_override is not None else self._account
         sender = signer.address()
@@ -218,9 +227,35 @@ class BaseSDK:
 
         sender_authenticator = self._sign_transaction(signer, transaction)
 
-        pending_tx = await self.submit_tx(transaction, sender_authenticator)
+        if txn_submit_timeout is None:
+            txn_submit_timeout = DEFAULT_TXN_SUBMIT_TIMEOUT
 
-        return await self._wait_for_transaction(pending_tx.hash, timeout_secs=timeout_secs)
+        try:
+            pending_tx = await self.submit_tx(
+                transaction, sender_authenticator, txn_submit_timeout=txn_submit_timeout
+            )
+        except httpx.ConnectTimeout as e:
+            raise TxnSubmitError(
+                f"Failed to submit transaction: connection timeout to {self._config.fullnode_url}",
+                original_exception=e,
+            )
+        except httpx.ConnectError as e:
+            raise TxnSubmitError(
+                f"Failed to submit transaction: connection error - {e}",
+                original_exception=e,
+            )
+        except httpx.HTTPStatusError as e:
+            raise TxnSubmitError(
+                f"Failed to submit transaction: HTTP {e.response.status_code}",
+                original_exception=e,
+            )
+        except Exception as e:
+            raise TxnSubmitError(
+                f"Failed to submit transaction: {e}",
+                original_exception=e,
+            )
+
+        return await self._wait_for_transaction(pending_tx.hash, txn_confirm_timeout=txn_confirm_timeout)
 
     def _sign_transaction(
         self,
@@ -285,6 +320,7 @@ class BaseSDK:
         self,
         transaction: SimpleTransaction,
         sender_authenticator: AccountAuthenticator,
+        txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
         url = f"{self._config.fullnode_url}/transactions"
         headers = self._build_node_headers()
@@ -293,7 +329,7 @@ class BaseSDK:
         bcs_bytes = self._serialize_signed_transaction(transaction, sender_authenticator)
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, content=bcs_bytes, headers=headers)
+            response = await client.post(url, content=bcs_bytes, headers=headers, timeout=txn_submit_timeout)
 
         if not response.is_success:
             raise ValueError(
@@ -315,11 +351,11 @@ class BaseSDK:
     async def _wait_for_transaction(
         self,
         tx_hash: str,
-        timeout_secs: float | None = None,  # Uses DEFAULT_TX_TIMEOUT_SECS if None
+        txn_confirm_timeout: float | None = None,  # Uses DEFAULT_TXN_CONFIRM_TIMEOUT if None
         poll_interval_secs: float = 1.0,
     ) -> dict[str, Any]:
-        if timeout_secs is None:
-            timeout_secs = DEFAULT_TX_TIMEOUT_SECS
+        if txn_confirm_timeout is None:
+            txn_confirm_timeout = DEFAULT_TXN_CONFIRM_TIMEOUT
         url = f"{self._config.fullnode_url}/transactions/by_hash/{tx_hash}"
         headers = self._build_node_headers()
         start_time = time.time()
@@ -337,12 +373,10 @@ class BaseSDK:
                         return data
                     elif data.get("success") is False:
                         vm_status = data.get("vm_status", "Unknown error")
-                        raise ValueError(f"Transaction failed: {vm_status}")
+                        raise TxnConfirmError(tx_hash, f"failed: {vm_status}")
 
-                if time.time() - start_time > timeout_secs:
-                    raise TimeoutError(
-                        f"Transaction {tx_hash} did not complete within {timeout_secs}s"
-                    )
+                if time.time() - start_time > txn_confirm_timeout:
+                    raise TxnConfirmError(tx_hash, f"did not confirm within {txn_confirm_timeout}s")
 
                 await self._async_sleep(poll_interval_secs)
 
@@ -499,20 +533,27 @@ class BaseSDKSync:
         self,
         transaction: SimpleTransaction,
         sender_authenticator: AccountAuthenticator,
+        *,
+        txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
         if self._no_fee_payer:
-            return self._submit_direct(transaction, sender_authenticator)
+            return self._submit_direct(
+                transaction, sender_authenticator, txn_submit_timeout
+            )
         return submit_fee_paid_transaction_sync(
             self._config,
             transaction,
             sender_authenticator,
+            txn_submit_timeout=txn_submit_timeout,
         )
 
     def _send_tx(
         self,
         payload: InputEntryFunctionData,
         account_override: Account | None = None,
-        timeout_secs: float | None = None,  # Uses DEFAULT_TX_TIMEOUT_SECS if None
+        *,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         signer = account_override if account_override is not None else self._account
         sender = signer.address()
@@ -546,9 +587,35 @@ class BaseSDKSync:
 
         sender_authenticator = self._sign_transaction(signer, transaction)
 
-        pending_tx = self.submit_tx(transaction, sender_authenticator)
+        if txn_submit_timeout is None:
+            txn_submit_timeout = DEFAULT_TXN_SUBMIT_TIMEOUT
 
-        return self._wait_for_transaction(pending_tx.hash, timeout_secs=timeout_secs)
+        try:
+            pending_tx = self.submit_tx(
+                transaction, sender_authenticator, txn_submit_timeout=txn_submit_timeout
+            )
+        except httpx.ConnectTimeout as e:
+            raise TxnSubmitError(
+                f"Failed to submit transaction: connection timeout to {self._config.fullnode_url}",
+                original_exception=e,
+            )
+        except httpx.ConnectError as e:
+            raise TxnSubmitError(
+                f"Failed to submit transaction: connection error - {e}",
+                original_exception=e,
+            )
+        except httpx.HTTPStatusError as e:
+            raise TxnSubmitError(
+                f"Failed to submit transaction: HTTP {e.response.status_code}",
+                original_exception=e,
+            )
+        except Exception as e:
+            raise TxnSubmitError(
+                f"Failed to submit transaction: {e}",
+                original_exception=e,
+            )
+
+        return self._wait_for_transaction(pending_tx.hash, txn_confirm_timeout=txn_confirm_timeout)
 
     def _sign_transaction(
         self,
@@ -619,6 +686,7 @@ class BaseSDKSync:
         self,
         transaction: SimpleTransaction,
         sender_authenticator: AccountAuthenticator,
+        txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
         url = f"{self._config.fullnode_url}/transactions"
         headers = self._build_node_headers()
@@ -626,7 +694,7 @@ class BaseSDKSync:
         bcs_bytes = self._serialize_signed_transaction(transaction, sender_authenticator)
 
         def make_request(client: httpx.Client) -> PendingTransactionResponse:
-            response = client.post(url, content=bcs_bytes, headers=headers)
+            response = client.post(url, content=bcs_bytes, headers=headers, timeout=txn_submit_timeout)
             if not response.is_success:
                 raise ValueError(
                     f"Transaction submission failed: {response.status_code} - {response.text}"
@@ -650,11 +718,11 @@ class BaseSDKSync:
     def _wait_for_transaction(
         self,
         tx_hash: str,
-        timeout_secs: float | None = None,  # Uses DEFAULT_TX_TIMEOUT_SECS if None
+        txn_confirm_timeout: float | None = None,  # Uses DEFAULT_TXN_CONFIRM_TIMEOUT if None
         poll_interval_secs: float = 1.0,
     ) -> dict[str, Any]:
-        if timeout_secs is None:
-            timeout_secs = DEFAULT_TX_TIMEOUT_SECS
+        if txn_confirm_timeout is None:
+            txn_confirm_timeout = DEFAULT_TXN_CONFIRM_TIMEOUT
         url = f"{self._config.fullnode_url}/transactions/by_hash/{tx_hash}"
         headers = self._build_node_headers()
         start_time = time.time()
@@ -671,11 +739,9 @@ class BaseSDKSync:
                         return data
                     elif data.get("success") is False:
                         vm_status = data.get("vm_status", "Unknown error")
-                        raise ValueError(f"Transaction failed: {vm_status}")
-                if time.time() - start_time > timeout_secs:
-                    raise TimeoutError(
-                        f"Transaction {tx_hash} did not complete within {timeout_secs}s"
-                    )
+                        raise TxnConfirmError(tx_hash, f"failed: {vm_status}")
+                if time.time() - start_time > txn_confirm_timeout:
+                    raise TxnConfirmError(tx_hash, f"did not confirm within {txn_confirm_timeout}s")
                 time.sleep(poll_interval_secs)
 
         if self._http_client is not None:
