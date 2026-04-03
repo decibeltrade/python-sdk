@@ -2,8 +2,215 @@
   "packageAddress": "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f",
   "network": "testnet",
   "fullnodeUrl": "https://api.testnet.aptoslabs.com/v1",
-  "fetchedAt": "2026-02-12T02:22:21.338518Z",
+  "fetchedAt": "2026-04-03T13:47:19.251957Z",
   "abis": {
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::burn": {
+      "name": "burn",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::mint": {
+      "name": "mint",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::add_admin": {
+      "name": "add_admin",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::available_restricted_mint_for": {
+      "name": "available_restricted_mint_for",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::can_mint": {
+      "name": "can_mint",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::can_restricted_mint": {
+      "name": "can_restricted_mint",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::change_restricted_mint_settings": {
+      "name": "change_restricted_mint_settings",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>",
+        "0x1::option::Option<u64>"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::enter_trading_competition": {
+      "name": "enter_trading_competition",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::get_admin_count": {
+      "name": "get_admin_count",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::is_admin": {
+      "name": "is_admin",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::is_public_minting_allowed": {
+      "name": "is_public_minting_allowed",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "bool"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::mints_remaining": {
+      "name": "mints_remaining",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::remove_admin": {
+      "name": "remove_admin",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint": {
+      "name": "restricted_mint",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "u64"
+      ],
+      "return": []
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint_daily_reset_timestamp": {
+      "name": "restricted_mint_daily_reset_timestamp",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint_daily_reset_timestamp_for": {
+      "name": "restricted_mint_daily_reset_timestamp_for",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::set_public_minting": {
+      "name": "set_public_minting",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "bool"
+      ],
+      "return": []
+    },
     "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::admin_apis::initialize": {
       "name": "initialize",
       "visibility": "public",
@@ -1545,6 +1752,18 @@
       ],
       "return": []
     },
+    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::admin_create_new_subaccount": {
+      "name": "admin_create_new_subaccount",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address"
+      ],
+      "return": []
+    },
     "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::dex_accounts_entry::approve_max_builder_fee_for_subaccount": {
       "name": "approve_max_builder_fee_for_subaccount",
       "visibility": "private",
@@ -2527,213 +2746,6 @@
         "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::perp_positions::AccountStatusDetailed"
       ]
     },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::burn": {
-      "name": "burn",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "address",
-        "u64"
-      ],
-      "return": []
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::mint": {
-      "name": "mint",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "address",
-        "u64"
-      ],
-      "return": []
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::add_admin": {
-      "name": "add_admin",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "address"
-      ],
-      "return": []
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::available_restricted_mint_for": {
-      "name": "available_restricted_mint_for",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address"
-      ],
-      "return": [
-        "u64"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::can_mint": {
-      "name": "can_mint",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address"
-      ],
-      "return": [
-        "bool"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::can_restricted_mint": {
-      "name": "can_restricted_mint",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address"
-      ],
-      "return": [
-        "bool"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::change_restricted_mint_settings": {
-      "name": "change_restricted_mint_settings",
-      "visibility": "private",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "0x1::option::Option<u64>",
-        "0x1::option::Option<u64>",
-        "0x1::option::Option<u64>"
-      ],
-      "return": []
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::enter_trading_competition": {
-      "name": "enter_trading_competition",
-      "visibility": "private",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer"
-      ],
-      "return": []
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::get_admin_count": {
-      "name": "get_admin_count",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::is_admin": {
-      "name": "is_admin",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address"
-      ],
-      "return": [
-        "bool"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::is_public_minting_allowed": {
-      "name": "is_public_minting_allowed",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "bool"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::mints_remaining": {
-      "name": "mints_remaining",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::remove_admin": {
-      "name": "remove_admin",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "address"
-      ],
-      "return": []
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint": {
-      "name": "restricted_mint",
-      "visibility": "private",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "u64"
-      ],
-      "return": []
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint_daily_reset_timestamp": {
-      "name": "restricted_mint_daily_reset_timestamp",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::restricted_mint_daily_reset_timestamp_for": {
-      "name": "restricted_mint_daily_reset_timestamp_for",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address"
-      ],
-      "return": [
-        "u64"
-      ]
-    },
-    "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::usdc::set_public_minting": {
-      "name": "set_public_minting",
-      "visibility": "private",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "bool"
-      ],
-      "return": []
-    },
     "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f::vault::get_vault_admin": {
       "name": "get_vault_admin",
       "visibility": "public",
@@ -2901,18 +2913,18 @@
   "errors": [],
   "summary": {
     "totalModules": 9,
-    "totalFunctions": 212,
-    "successful": 212,
+    "totalFunctions": 213,
+    "successful": 213,
     "failed": 0
   },
   "modules": [
+    "usdc",
     "admin_apis",
     "public_apis",
     "dex_accounts",
     "dex_accounts_entry",
     "dex_accounts_vault_extension",
     "perp_engine",
-    "usdc",
     "vault",
     "vault_api"
   ]

@@ -12,7 +12,13 @@ from typing import Any
 from aptos_sdk.account_address import AccountAddress
 from aptos_sdk.async_client import RestClient
 
-from decibel._constants import NAMED_CONFIGS, NETNA_CONFIG, TESTNET_CONFIG, DecibelConfig
+from decibel._constants import (
+    MAINNET_CONFIG,
+    NAMED_CONFIGS,
+    NETNA_CONFIG,
+    TESTNET_CONFIG,
+    DecibelConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +30,8 @@ def _setup_cli_logging() -> None:
     )
 
 
+TESTNET_SDK_MODULES = ["usdc"]
+
 SDK_MODULES = [
     "admin_apis",
     "public_apis",
@@ -31,7 +39,6 @@ SDK_MODULES = [
     "dex_accounts_entry",
     "dex_accounts_vault_extension",
     "perp_engine",
-    "usdc",
     "vault",
     "vault_api",
 ]
@@ -42,6 +49,8 @@ def get_abi_filename(config: DecibelConfig) -> str:
         return "netna.json"
     elif config == TESTNET_CONFIG:
         return "testnet.json"
+    elif config == MAINNET_CONFIG:
+        return "mainnet.json"
     else:
         return f"{config.network.value}.json"
 
@@ -61,8 +70,9 @@ async def fetch_all_abis(config: DecibelConfig) -> None:
     abis: dict[str, dict[str, Any]] = {}
     errors: list[dict[str, str]] = []
     package_address = AccountAddress.from_str(config.deployment.package)
+    modules = TESTNET_SDK_MODULES + SDK_MODULES if config == TESTNET_CONFIG else SDK_MODULES
 
-    for module in SDK_MODULES:
+    for module in modules:
         try:
             logger.info("Fetching entire module: %s", module)
 
@@ -110,12 +120,12 @@ async def fetch_all_abis(config: DecibelConfig) -> None:
         "abis": abis,
         "errors": errors,
         "summary": {
-            "totalModules": len(SDK_MODULES),
+            "totalModules": len(modules),
             "totalFunctions": total_functions,
             "successful": successful,
             "failed": failed,
         },
-        "modules": SDK_MODULES,
+        "modules": modules,
     }
 
     filename = get_abi_filename(config)
@@ -127,7 +137,7 @@ async def fetch_all_abis(config: DecibelConfig) -> None:
 
     logger.info("")
     logger.info("Summary:")
-    logger.info("  Total modules fetched: %d", len(SDK_MODULES))
+    logger.info("  Total modules fetched: %d", len(modules))
     logger.info("  Total functions found: %d", successful)
     logger.info("  Failed modules: %d", failed)
 
@@ -166,15 +176,15 @@ def cli() -> None:
     parser.add_argument(
         "networks",
         nargs="*",
-        default=["netna"],
-        help="Networks to fetch ABIs for (netna, testnet, all). Default: netna",
+        default=["testnet"],
+        help="Networks to fetch ABIs for (testnet, testnet, mainnet, all). Default: testnet",
     )
 
     args = parser.parse_args()
 
     networks: list[str] = args.networks
     if "all" in networks:
-        networks = ["netna", "testnet"]
+        networks = ["testnet", "mainnet"]
 
     asyncio.run(main(networks))
 

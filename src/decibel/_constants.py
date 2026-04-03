@@ -81,7 +81,7 @@ def _create_deployment(package: str) -> Deployment:
     )
 
 
-_MAINNET_PACKAGE = "0xe6683d451db246750f180fb78d9b5e0a855dacba64ddf5810dffdaeb221e46bf"
+_MAINNET_PACKAGE = "0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06"
 _MAINNET_USDC = "0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b"
 _NETNA_PACKAGE = "0xb8a5788314451ce4d2fbbad32e1bad88d4184b73943b7fe5166eab93cf1a5a95"
 _TESTNET_PACKAGE = "0x952535c3049e52f195f26798c2f1340d7dd5100edbe0f464e520a974d16fbe9f"

@@ -214,11 +214,26 @@ write.withdraw(amount)
 ## Development
 
 ```bash
-uv sync --all-extras       # Install dependencies
-uv run pre-commit install  # Setup pre-commit hooks
-uv run pytest              # Run tests
-uv run ruff check .        # Lint
-uv run pyright             # Type check
+make setup                 # Install dependencies + pre-commit hooks
+make                       # Run full quality pipeline (format, lint, typecheck, test)
+make lint                  # Check for lint errors
+make fix                   # Auto-fix lint and format issues
+make typecheck             # Run pyright type checking
+make test                  # Run tests
+```
+
+### Generating ABI JSON Files
+
+The SDK uses ABI JSON files to build on-chain transactions. These are fetched from the deployed smart contracts and stored in `src/decibel/abi/json/`. They should be regenerated whenever the on-chain contracts are updated.
+
+```bash
+# Generate ABIs for a specific network (default: mainnet)
+make abi
+make abi NETWORK=testnet
+make abi NETWORK=mainnet
+
+# Generate ABIs for all networks
+make abi-all
 ```
 
 ## Resources
