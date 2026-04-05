@@ -151,6 +151,7 @@ class DecibelWriteDex(BaseSDK):
         self,
         amount: int,
         subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -163,6 +164,7 @@ class DecibelWriteDex(BaseSDK):
                     type_arguments=[],
                     function_arguments=[addr, usdc, amount],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -172,6 +174,7 @@ class DecibelWriteDex(BaseSDK):
         self,
         amount: int,
         subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -184,6 +187,7 @@ class DecibelWriteDex(BaseSDK):
                     type_arguments=[],
                     function_arguments=[addr, usdc, amount],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -196,6 +200,7 @@ class DecibelWriteDex(BaseSDK):
         subaccount_addr: str,
         is_cross: bool,
         user_leverage: int,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -207,6 +212,7 @@ class DecibelWriteDex(BaseSDK):
                     type_arguments=[],
                     function_arguments=[addr, market_addr, is_cross, user_leverage],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -232,6 +238,7 @@ class DecibelWriteDex(BaseSDK):
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
         tick_size: int | float | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> PlaceOrderResult:
         try:
@@ -290,6 +297,7 @@ class DecibelWriteDex(BaseSDK):
                         ],
                     ),
                     account_override,
+                    txn_submit_timeout=txn_submit_timeout,
                     txn_confirm_timeout=txn_confirm_timeout,
                 )
 
@@ -314,6 +322,7 @@ class DecibelWriteDex(BaseSDK):
         *,
         market_addr: str,
         max_work_unit: int,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -323,6 +332,7 @@ class DecibelWriteDex(BaseSDK):
                 type_arguments=[],
                 function_arguments=[market_addr, max_work_unit],
             ),
+            txn_submit_timeout=txn_submit_timeout,
             txn_confirm_timeout=txn_confirm_timeout,
         )
         return {
@@ -344,6 +354,7 @@ class DecibelWriteDex(BaseSDK):
         builder_fees: float | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> PlaceOrderResult:
         market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
@@ -368,6 +379,7 @@ class DecibelWriteDex(BaseSDK):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -389,6 +401,7 @@ class DecibelWriteDex(BaseSDK):
         market_addr: str | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         if market_name is not None:
@@ -410,6 +423,7 @@ class DecibelWriteDex(BaseSDK):
                     function_arguments=[addr, int(order_id), resolved_market_addr],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -428,6 +442,7 @@ class DecibelWriteDex(BaseSDK):
         builder_fee: int | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> PlaceBulkOrdersResult:
         try:
@@ -452,6 +467,7 @@ class DecibelWriteDex(BaseSDK):
                         ],
                     ),
                     account_override,
+                    txn_submit_timeout=txn_submit_timeout,
                     txn_confirm_timeout=txn_confirm_timeout,
                 )
 
@@ -470,6 +486,7 @@ class DecibelWriteDex(BaseSDK):
         market_name: str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
@@ -483,6 +500,7 @@ class DecibelWriteDex(BaseSDK):
                     function_arguments=[addr, market_addr],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -495,6 +513,7 @@ class DecibelWriteDex(BaseSDK):
         market_name: str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
@@ -508,6 +527,7 @@ class DecibelWriteDex(BaseSDK):
                     function_arguments=[addr, client_order_id, market_addr],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -519,6 +539,7 @@ class DecibelWriteDex(BaseSDK):
         subaccount_addr: str,
         account_to_delegate_to: str,
         expiration_timestamp_secs: int | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -534,6 +555,7 @@ class DecibelWriteDex(BaseSDK):
                         expiration_timestamp_secs,
                     ],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -544,6 +566,7 @@ class DecibelWriteDex(BaseSDK):
         *,
         account_to_revoke: str,
         subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -555,6 +578,7 @@ class DecibelWriteDex(BaseSDK):
                     type_arguments=[],
                     function_arguments=[addr, account_to_revoke],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -573,6 +597,7 @@ class DecibelWriteDex(BaseSDK):
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
         tick_size: int | float | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         final_tp_trigger = (
@@ -617,6 +642,7 @@ class DecibelWriteDex(BaseSDK):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -632,6 +658,7 @@ class DecibelWriteDex(BaseSDK):
         tp_size: float | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -651,6 +678,7 @@ class DecibelWriteDex(BaseSDK):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -666,6 +694,7 @@ class DecibelWriteDex(BaseSDK):
         sl_size: float | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -685,6 +714,7 @@ class DecibelWriteDex(BaseSDK):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -697,6 +727,7 @@ class DecibelWriteDex(BaseSDK):
         order_id: int | str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -709,6 +740,7 @@ class DecibelWriteDex(BaseSDK):
                     function_arguments=[addr, market_addr, int(order_id)],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -721,6 +753,7 @@ class DecibelWriteDex(BaseSDK):
         order_id: int | str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -733,6 +766,7 @@ class DecibelWriteDex(BaseSDK):
                     function_arguments=[addr, market_addr, int(order_id)],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -761,6 +795,7 @@ class DecibelWriteDex(BaseSDK):
         subaccount_addr: str,
         revoke_all_delegations: bool = True,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -773,6 +808,7 @@ class DecibelWriteDex(BaseSDK):
                     function_arguments=[addr, revoke_all_delegations],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -814,6 +850,7 @@ class DecibelWriteDex(BaseSDK):
         *,
         account_override: Account | None = None,
         subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -844,6 +881,7 @@ class DecibelWriteDex(BaseSDK):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1145,6 +1183,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         self,
         amount: int,
         subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1157,6 +1196,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     type_arguments=[],
                     function_arguments=[addr, usdc, amount],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1166,6 +1206,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         self,
         amount: int,
         subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1178,6 +1219,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     type_arguments=[],
                     function_arguments=[addr, usdc, amount],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1190,6 +1232,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         subaccount_addr: str,
         is_cross: bool,
         user_leverage: int,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1201,6 +1244,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     type_arguments=[],
                     function_arguments=[addr, market_addr, is_cross, user_leverage],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1226,6 +1270,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
         tick_size: int | float | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> PlaceOrderResult:
         try:
@@ -1284,6 +1329,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                         ],
                     ),
                     account_override,
+                    txn_submit_timeout=txn_submit_timeout,
                     txn_confirm_timeout=txn_confirm_timeout,
                 )
 
@@ -1308,6 +1354,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         *,
         market_addr: str,
         max_work_unit: int,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1317,6 +1364,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                 type_arguments=[],
                 function_arguments=[market_addr, max_work_unit],
             ),
+            txn_submit_timeout=txn_submit_timeout,
             txn_confirm_timeout=txn_confirm_timeout,
         )
         return {
@@ -1338,6 +1386,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         builder_fees: float | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> PlaceOrderResult:
         market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
@@ -1362,6 +1411,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1383,6 +1433,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         market_addr: str | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         if market_name is not None:
@@ -1404,6 +1455,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     function_arguments=[addr, int(order_id), resolved_market_addr],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1422,6 +1474,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         builder_fee: int | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> PlaceBulkOrdersResult:
         try:
@@ -1446,6 +1499,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                         ],
                     ),
                     account_override,
+                    txn_submit_timeout=txn_submit_timeout,
                     txn_confirm_timeout=txn_confirm_timeout,
                 )
 
@@ -1464,6 +1518,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         market_name: str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
@@ -1477,6 +1532,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     function_arguments=[addr, market_addr],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1489,6 +1545,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         market_name: str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
@@ -1502,6 +1559,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     function_arguments=[addr, client_order_id, market_addr],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1513,6 +1571,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         subaccount_addr: str,
         account_to_delegate_to: str,
         expiration_timestamp_secs: int | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1528,6 +1587,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                         expiration_timestamp_secs,
                     ],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1538,6 +1598,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         *,
         account_to_revoke: str,
         subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1549,6 +1610,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     type_arguments=[],
                     function_arguments=[addr, account_to_revoke],
                 ),
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1567,6 +1629,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
         tick_size: int | float | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         final_tp_trigger = (
@@ -1611,6 +1674,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1626,6 +1690,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         tp_size: float | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1645,6 +1710,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1660,6 +1726,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         sl_size: float | None = None,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1679,6 +1746,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1691,6 +1759,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         order_id: int | str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1703,6 +1772,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                     function_arguments=[addr, market_addr, int(order_id)],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1715,6 +1785,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         market_addr: str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1724,9 +1795,10 @@ class DecibelWriteDexSync(BaseSDKSync):
                 InputEntryFunctionData(
                     function=f"{pkg}::dex_accounts_entry::cancel_twap_orders_to_subaccount",
                     type_arguments=[],
-                    function_arguments=[addr, market_addr, order_id],
+                    function_arguments=[addr, market_addr, int(order_id)],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
@@ -1755,6 +1827,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         subaccount_addr: str,
         revoke_all_delegations: bool = True,
         account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
@@ -1766,6 +1839,8 @@ class DecibelWriteDexSync(BaseSDKSync):
                     type_arguments=[],
                     function_arguments=[addr, revoke_all_delegations],
                 ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
             )
 
