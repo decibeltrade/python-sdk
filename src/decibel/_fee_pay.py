@@ -237,7 +237,9 @@ async def _submit_via_legacy_fee_payer(
         response = await client.post(url, json=body, headers=headers, timeout=txn_submit_timeout)
     else:
         async with httpx.AsyncClient() as temp_client:
-            response = await temp_client.post(url, json=body, headers=headers, timeout=txn_submit_timeout)
+            response = await temp_client.post(
+                url, json=body, headers=headers, timeout=txn_submit_timeout
+            )
 
     # TODO: Improve error handling
     if not response.is_success:

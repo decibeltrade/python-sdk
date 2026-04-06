@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 from aptos_sdk.async_client import RestClient
-
-from ._exceptions import TxnConfirmError, TxnSubmitError
 from aptos_sdk.authenticator import (
     AccountAuthenticator,
     Authenticator,
@@ -21,6 +19,7 @@ from aptos_sdk.ed25519 import Signature as Ed25519Signature
 from aptos_sdk.transactions import FeePayerRawTransaction, SignedTransaction
 
 from ._constants import DEFAULT_TXN_CONFIRM_TIMEOUT, DEFAULT_TXN_SUBMIT_TIMEOUT
+from ._exceptions import TxnConfirmError, TxnSubmitError
 from ._fee_pay import (
     PendingTransactionResponse,
     submit_fee_paid_transaction,
@@ -177,9 +176,7 @@ class BaseSDK:
         txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
         if self._no_fee_payer:
-            return await self._submit_direct(
-                transaction, sender_authenticator, txn_submit_timeout
-            )
+            return await self._submit_direct(transaction, sender_authenticator, txn_submit_timeout)
         return await submit_fee_paid_transaction(
             self._config,
             transaction,
@@ -238,24 +235,26 @@ class BaseSDK:
             raise TxnSubmitError(
                 f"Failed to submit transaction: connection timeout to {self._config.fullnode_url}",
                 original_exception=e,
-            )
+            ) from e
         except httpx.ConnectError as e:
             raise TxnSubmitError(
                 f"Failed to submit transaction: connection error - {e}",
                 original_exception=e,
-            )
+            ) from e
         except httpx.HTTPStatusError as e:
             raise TxnSubmitError(
                 f"Failed to submit transaction: HTTP {e.response.status_code}",
                 original_exception=e,
-            )
+            ) from e
         except Exception as e:
             raise TxnSubmitError(
                 f"Failed to submit transaction: {e}",
                 original_exception=e,
-            )
+            ) from e
 
-        return await self._wait_for_transaction(pending_tx.hash, txn_confirm_timeout=txn_confirm_timeout)
+        return await self._wait_for_transaction(
+            pending_tx.hash, txn_confirm_timeout=txn_confirm_timeout
+        )
 
     def _sign_transaction(
         self,
@@ -329,7 +328,9 @@ class BaseSDK:
         bcs_bytes = self._serialize_signed_transaction(transaction, sender_authenticator)
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, content=bcs_bytes, headers=headers, timeout=txn_submit_timeout)
+            response = await client.post(
+                url, content=bcs_bytes, headers=headers, timeout=txn_submit_timeout
+            )
 
         if not response.is_success:
             raise ValueError(
@@ -537,9 +538,7 @@ class BaseSDKSync:
         txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
         if self._no_fee_payer:
-            return self._submit_direct(
-                transaction, sender_authenticator, txn_submit_timeout
-            )
+            return self._submit_direct(transaction, sender_authenticator, txn_submit_timeout)
         return submit_fee_paid_transaction_sync(
             self._config,
             transaction,
@@ -598,22 +597,22 @@ class BaseSDKSync:
             raise TxnSubmitError(
                 f"Failed to submit transaction: connection timeout to {self._config.fullnode_url}",
                 original_exception=e,
-            )
+            ) from e
         except httpx.ConnectError as e:
             raise TxnSubmitError(
                 f"Failed to submit transaction: connection error - {e}",
                 original_exception=e,
-            )
+            ) from e
         except httpx.HTTPStatusError as e:
             raise TxnSubmitError(
                 f"Failed to submit transaction: HTTP {e.response.status_code}",
                 original_exception=e,
-            )
+            ) from e
         except Exception as e:
             raise TxnSubmitError(
                 f"Failed to submit transaction: {e}",
                 original_exception=e,
-            )
+            ) from e
 
         return self._wait_for_transaction(pending_tx.hash, txn_confirm_timeout=txn_confirm_timeout)
 
@@ -694,7 +693,9 @@ class BaseSDKSync:
         bcs_bytes = self._serialize_signed_transaction(transaction, sender_authenticator)
 
         def make_request(client: httpx.Client) -> PendingTransactionResponse:
-            response = client.post(url, content=bcs_bytes, headers=headers, timeout=txn_submit_timeout)
+            response = client.post(
+                url, content=bcs_bytes, headers=headers, timeout=txn_submit_timeout
+            )
             if not response.is_success:
                 raise ValueError(
                     f"Transaction submission failed: {response.status_code} - {response.text}"

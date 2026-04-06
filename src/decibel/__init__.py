@@ -2,14 +2,8 @@ from decibel._base import (
     BaseSDKOptions,
     BaseSDKOptionsSync,
 )
-from decibel._exceptions import (
-    TxnConfirmError,
-    TxnSubmitError,
-)
 from decibel._constants import (
     DEFAULT_COMPAT_VERSION,
-    DEFAULT_TXN_CONFIRM_TIMEOUT,
-    DEFAULT_TXN_SUBMIT_TIMEOUT,
     DOCKER_CONFIG,
     LOCAL_CONFIG,
     MAINNET_CONFIG,
@@ -23,6 +17,10 @@ from decibel._constants import (
     get_perp_engine_global_address,
     get_testc_address,
     get_usdc_address,
+)
+from decibel._exceptions import (
+    TxnConfirmError,
+    TxnSubmitError,
 )
 from decibel._fee_pay import (
     PendingTransactionResponse,
