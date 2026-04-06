@@ -1,6 +1,8 @@
 name: "CI: Python SDK"
 
 on:
+  push:
+    branches: [main]
   pull_request:
 
 jobs:
