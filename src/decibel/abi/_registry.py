@@ -34,7 +34,7 @@ def _load_abi_json(filename: str) -> ABIData:
 def get_abi_data(chain_id: int | None) -> ABIData:
     if chain_id == CHAIN_ID_MAINNET:
         return _load_abi_json("mainnet.json")
-    if chain_id == CHAIN_ID_NETNA:
+    elif chain_id == CHAIN_ID_NETNA:
         return _load_abi_json("netna.json")
     elif chain_id == CHAIN_ID_TESTNET:
         return _load_abi_json("testnet.json")

@@ -18,6 +18,10 @@ from decibel._constants import (
     get_testc_address,
     get_usdc_address,
 )
+from decibel._exceptions import (
+    TxnConfirmError,
+    TxnSubmitError,
+)
 from decibel._fee_pay import (
     PendingTransactionResponse,
     submit_fee_paid_transaction,
@@ -143,6 +147,8 @@ __all__ = [
     "DecibelAdminDex",
     "DecibelAdminDexSync",
     "ABIErrorEntry",
+    "TxnConfirmError",
+    "TxnSubmitError",
     "ABISummary",
     "AbiRegistry",
     "amount_to_chain_units",
