@@ -2,10 +2,10 @@
 
 <div align="center">
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Type checked: pyright](https://img.shields.io/badge/type%20checked-pyright-blue.svg)](https://github.com/microsoft/pyright)
-[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![PyPI](https://img.shields.io/pypi/v/decibel-python-sdk)](https://pypi.org/project/decibel-python-sdk/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decibel-python-sdk)](https://pypi.org/project/decibel-python-sdk/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/decibel-python-sdk)](https://pypi.org/project/decibel-python-sdk/)
+[![CI](https://github.com/decibeltrade/python-sdk/actions/workflows/python-sdk-ci.yml/badge.svg)](https://github.com/decibeltrade/python-sdk/actions/workflows/python-sdk-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Python SDK for interacting with [Decibel](https://decibel.trade), a fully on-chain trading engine built on [Aptos](https://aptos.dev).
@@ -155,10 +155,11 @@ See the [examples](examples) directory for complete working examples:
 ### Network Configs
 
 ```python
-from decibel import NETNA_CONFIG, TESTNET_CONFIG
+from decibel import MAINNET_CONFIG, TESTNET_CONFIG, NETNA_CONFIG
 
-# NETNA_CONFIG - Dev Network
+# MAINNET_CONFIG - Production network
 # TESTNET_CONFIG - Test network
+# NETNA_CONFIG   - Dev network
 ```
 
 ### Read Client
@@ -174,19 +175,43 @@ read.market_prices.get_all()
 read.market_prices.get_by_name(market_name)
 read.market_depth.get_by_name(market_name, limit=50)
 read.market_trades.get_by_name(market_name)
+read.market_contexts.get_all()
 read.candlesticks.get_by_name(market_name, interval, start_time, end_time)
 
 # User data
-read.user_positions.get_by_addr(sub_addr)
-read.user_open_orders.get_by_addr(sub_addr)
-read.user_order_history.get_by_addr(sub_addr)
-read.user_trade_history.get_by_addr(sub_addr)
-read.account_overview.get_by_addr(sub_addr)
+read.account_overview.get_by_addr(sub_addr=sub_addr)
+read.user_positions.get_by_addr(sub_addr=sub_addr)
+read.user_open_orders.get_by_addr(sub_addr=sub_addr)
+read.user_order_history.get_by_addr(sub_addr=sub_addr)
+read.user_trade_history.get_by_addr(sub_addr=sub_addr)
+read.user_bulk_orders.get_by_addr(sub_addr=sub_addr)
+read.user_subaccounts.get_by_addr(owner_addr=addr)
+read.user_fund_history.get_by_addr(sub_addr=sub_addr)
+read.user_funding_history.get_by_addr(sub_addr=sub_addr)
+read.user_active_twaps.get_by_addr(sub_addr=sub_addr)
+read.user_twap_history.get_by_addr(sub_addr=sub_addr)
+
+# Other
+read.delegations.get_all(sub_addr=sub_addr)
+read.leaderboard.get_leaderboard()
+read.portfolio_chart.get_by_addr(sub_addr=sub_addr, time_range="7d", data_type="pnl")
+read.vaults.get_vaults()
+read.trading_points.get_by_owner(owner_addr=addr)
 
 # WebSocket subscriptions
 read.market_prices.subscribe_by_name(market_name, callback)
+read.market_prices.subscribe_all(callback)
 read.market_depth.subscribe_by_name(market_name, aggregation_size, callback)
+read.market_trades.subscribe_by_name(market_name, callback)
+read.candlesticks.subscribe_by_name(market_name, interval, callback)
+read.account_overview.subscribe_by_addr(sub_addr, callback)
 read.user_positions.subscribe_by_addr(sub_addr, callback)
+read.user_open_orders.subscribe_by_addr(sub_addr, callback)
+read.user_order_history.subscribe_by_addr(sub_addr, callback)
+read.user_trade_history.subscribe_by_addr(sub_addr, callback)
+read.user_bulk_orders.subscribe_by_addr(sub_addr, callback)
+read.user_active_twaps.subscribe_by_addr(sub_addr, callback)
+read.user_notifications.subscribe_by_addr(sub_addr, callback)
 ```
 
 ### Write Client
@@ -197,18 +222,32 @@ from decibel import DecibelWriteDex, TimeInForce
 write = DecibelWriteDex(config, account, opts)
 
 # Orders
-write.place_order(market_name, price, size, is_buy, time_in_force, is_reduce_only)
-write.cancel_order(market_name, order_id)
-write.cancel_client_order(market_name, client_order_id)
+write.place_order(market_name=..., price=..., size=..., is_buy=..., time_in_force=..., is_reduce_only=...)
+write.cancel_order(order_id=..., market_name=...)
+write.cancel_client_order(client_order_id=..., market_name=...)
+write.place_bulk_orders(market_name=..., sequence_number=..., bid_prices=..., bid_sizes=..., ask_prices=..., ask_sizes=...)
+write.cancel_bulk_order(market_name=...)
 
 # TP/SL
-write.place_tp_sl_order_for_position(market_name, tp_price, sl_price, ...)
-write.update_tp_order_for_position(market_name, order_id, new_trigger_price, ...)
-write.update_sl_order_for_position(market_name, order_id, new_trigger_price, ...)
+write.place_tp_sl_order_for_position(market_name=..., tp_price=..., sl_price=..., ...)
+write.update_tp_order_for_position(market_name=..., order_id=..., new_trigger_price=..., ...)
+write.update_sl_order_for_position(market_name=..., order_id=..., new_trigger_price=..., ...)
+
+# TWAP
+write.place_twap_order(market_name=..., size=..., is_buy=..., is_reduce_only=..., twap_frequency_seconds=..., twap_duration_seconds=...)
+write.cancel_twap_order(market_addr=..., order_id=...)
 
 # Collateral
 write.deposit(amount)
 write.withdraw(amount)
+
+# Vaults
+write.deposit_to_vault(vault_address=..., amount=..., subaccount_addr=...)
+write.withdraw_from_vault(vault_address=..., shares=...)
+
+# Subaccounts
+write.create_subaccount()
+write.deactivate_subaccount(subaccount_addr=...)
 ```
 
 ## Development
