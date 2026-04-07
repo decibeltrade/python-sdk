@@ -53,7 +53,7 @@ class OrderStatusClient:
         params = {
             "order_id": order_id,
             "market_address": market_address,
-            "user_address": user_address,
+            "account": user_address,
         }
 
         try:
@@ -86,7 +86,7 @@ class OrderStatusClient:
         params = {
             "order_id": order_id,
             "market_address": market_address,
-            "user_address": user_address,
+            "account": user_address,
         }
 
         try:
