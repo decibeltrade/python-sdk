@@ -26,14 +26,18 @@ class MarketTrade(BaseModel):
     account: str
     market: str
     action: str
+    trade_id: str | int | None = None
     size: float
     price: float
     is_profit: bool
     realized_pnl_amount: float
-    is_funding_positive: bool
+    is_funding_positive: bool | None = None
     realized_funding_amount: float
     is_rebate: bool
     fee_amount: float
+    order_id: str | None = None
+    client_order_id: str | None = None
+    source: str | None = None
     transaction_unix_ms: int
     transaction_version: int
 
