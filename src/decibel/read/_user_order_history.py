@@ -52,7 +52,7 @@ class UserOrders(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     items: list[UserOrder]
-    total_count: int
+    total_count: int = 0
 
 
 class _UserOrderInner(BaseModel):

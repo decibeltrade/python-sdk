@@ -32,7 +32,7 @@ class UserTrade(BaseModel):
     price: float
     is_profit: bool
     realized_pnl_amount: float
-    is_funding_positive: bool
+    is_funding_positive: bool | None = None
     realized_funding_amount: float
     is_rebate: bool
     fee_amount: float
@@ -42,7 +42,7 @@ class UserTrade(BaseModel):
 
 class UserTradesResponse(BaseModel):
     items: list[UserTrade]
-    total_count: int
+    total_count: int = 0
 
 
 class UserTradesWsMessage(BaseModel):
