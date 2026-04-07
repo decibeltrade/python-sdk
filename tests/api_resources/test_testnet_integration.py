@@ -145,9 +145,7 @@ class TestPricesIntegration:
         """Number of prices SHOULD match number of markets."""
         markets = await read.markets.get_all()
         prices = await read.market_prices.get_all()
-        assert len(prices) == len(markets), (
-            f"Expected {len(markets)} prices, got {len(prices)}"
-        )
+        assert len(prices) == len(markets), f"Expected {len(markets)} prices, got {len(prices)}"
 
     async def test_price_markets_match_market_list(self, read: DecibelReadDex) -> None:
         """Price market addresses SHALL be from the known market list."""
@@ -155,9 +153,7 @@ class TestPricesIntegration:
         market_addrs = {m.market_addr for m in markets}
         prices = await read.market_prices.get_all()
         for price in prices:
-            assert price.market in market_addrs, (
-                f"Price for unknown market: {price.market}"
-            )
+            assert price.market in market_addrs, f"Price for unknown market: {price.market}"
 
 
 # ---------------------------------------------------------------------------
@@ -168,9 +164,7 @@ class TestPricesIntegration:
 class TestCandlesticksIntegration:
     """Verify /api/v1/candlesticks against live testnet."""
 
-    async def test_get_candlesticks(
-        self, read: DecibelReadDex, first_market_addr: str
-    ) -> None:
+    async def test_get_candlesticks(self, read: DecibelReadDex, first_market_addr: str) -> None:
         """SHALL return candlestick data for a valid market and time range."""
         from decibel.read._candlesticks import CandlestickInterval
 
@@ -272,9 +266,7 @@ class TestTradesIntegration:
         # Try markets until we find one with trades
         trades: list = []
         for market in markets:
-            trades = await read.market_trades.get_by_name(
-                market_name=market.market_name, limit=2
-            )
+            trades = await read.market_trades.get_by_name(market_name=market.market_name, limit=2)
             if trades:
                 break
 
@@ -423,9 +415,7 @@ class TestWebSocketIntegration:
             received.append(msg)
             event.set()
 
-        unsub = read.market_prices.subscribe_by_address(
-            markets[0].market_addr, on_data
-        )
+        unsub = read.market_prices.subscribe_by_address(markets[0].market_addr, on_data)
 
         try:
             await asyncio.wait_for(event.wait(), timeout=15.0)

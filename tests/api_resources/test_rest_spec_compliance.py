@@ -59,13 +59,14 @@ class TestMarketPricesReader:
 
         reader = MarketPricesReader(reader_deps)
 
-        async def patched_get(
-            model: type, url: str, *, params: dict | None = None
-        ) -> tuple:
+        async def patched_get(model: type, url: str, *, params: dict | None = None) -> tuple:
             async with httpx.AsyncClient(transport=mock_transport) as client:
                 return await get_request(
-                    model=model, url=url, params=params,
-                    api_key="test-key", client=client,
+                    model=model,
+                    url=url,
+                    params=params,
+                    api_key="test-key",
+                    client=client,
                 )
 
         reader.get_request = patched_get  # type: ignore[assignment]
@@ -140,9 +141,7 @@ class TestAuthentication:
 class TestErrorHandling:
     """SPEC.md Section 6: Error response parsing and FetchError."""
 
-    async def _fetch_and_expect_error(
-        self, body: dict, status_code: int
-    ) -> FetchError:
+    async def _fetch_and_expect_error(self, body: dict, status_code: int) -> FetchError:
         """Helper: make a request that returns an error, return the FetchError."""
         transport = MockTransport()
         transport.set_response(body, status_code=status_code)
@@ -195,33 +194,51 @@ class TestPriceDtoValidation:
 
     def test_valid_price_parses(self) -> None:
         """Valid PriceDto with all required fields SHALL parse."""
-        price = MarketPrice.model_validate({
-            "market": "0x" + "a" * 64,
-            "oracle_px": 100.0, "mark_px": 99.0, "mid_px": 99.5,
-            "funding_rate_bps": 1.0, "is_funding_positive": True,
-            "transaction_unix_ms": 1000, "open_interest": 50.0,
-        })
+        price = MarketPrice.model_validate(
+            {
+                "market": "0x" + "a" * 64,
+                "oracle_px": 100.0,
+                "mark_px": 99.0,
+                "mid_px": 99.5,
+                "funding_rate_bps": 1.0,
+                "is_funding_positive": True,
+                "transaction_unix_ms": 1000,
+                "open_interest": 50.0,
+            }
+        )
         assert price.oracle_px == 100.0
 
     def test_missing_required_field_raises(self) -> None:
         """Missing 'market' field SHALL raise ValidationError."""
         with pytest.raises(ValidationError):
-            MarketPrice.model_validate({
-                # "market" is missing
-                "oracle_px": 100.0, "mark_px": 99.0, "mid_px": 99.5,
-                "funding_rate_bps": 1.0, "is_funding_positive": True,
-                "transaction_unix_ms": 1000, "open_interest": 50.0,
-            })
+            MarketPrice.model_validate(
+                {
+                    # "market" is missing
+                    "oracle_px": 100.0,
+                    "mark_px": 99.0,
+                    "mid_px": 99.5,
+                    "funding_rate_bps": 1.0,
+                    "is_funding_positive": True,
+                    "transaction_unix_ms": 1000,
+                    "open_interest": 50.0,
+                }
+            )
 
     def test_wrong_type_for_oracle_px_raises(self) -> None:
         """Non-numeric oracle_px SHALL raise ValidationError."""
         with pytest.raises(ValidationError):
-            MarketPrice.model_validate({
-                "market": "0x" + "a" * 64,
-                "oracle_px": "not_a_number", "mark_px": 99.0, "mid_px": 99.5,
-                "funding_rate_bps": 1.0, "is_funding_positive": True,
-                "transaction_unix_ms": 1000, "open_interest": 50.0,
-            })
+            MarketPrice.model_validate(
+                {
+                    "market": "0x" + "a" * 64,
+                    "oracle_px": "not_a_number",
+                    "mark_px": 99.0,
+                    "mid_px": 99.5,
+                    "funding_rate_bps": 1.0,
+                    "is_funding_positive": True,
+                    "transaction_unix_ms": 1000,
+                    "open_interest": 50.0,
+                }
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -233,35 +250,58 @@ class TestMarketDtoValidation:
     """MarketDto SHALL enforce required fields and mode enum."""
 
     def test_valid_market_parses(self) -> None:
-        market = PerpMarket.model_validate({
-            "market_addr": "0x" + "a" * 64, "market_name": "BTC-PERP",
-            "sz_decimals": 4, "max_leverage": 50, "tick_size": 100,
-            "min_size": 1000, "lot_size": 100, "max_open_interest": 1000000.0,
-            "px_decimals": 1, "mode": "Open",
-        })
+        market = PerpMarket.model_validate(
+            {
+                "market_addr": "0x" + "a" * 64,
+                "market_name": "BTC-PERP",
+                "sz_decimals": 4,
+                "max_leverage": 50,
+                "tick_size": 100,
+                "min_size": 1000,
+                "lot_size": 100,
+                "max_open_interest": 1000000.0,
+                "px_decimals": 1,
+                "mode": "Open",
+            }
+        )
         assert market.market_name == "BTC-PERP"
         assert market.mode.value == "Open"
 
     def test_mode_reduce_only_parses(self) -> None:
         """ReduceOnly mode SHALL be accepted."""
-        market = PerpMarket.model_validate({
-            "market_addr": "0x" + "b" * 64, "market_name": "ETH-PERP",
-            "sz_decimals": 8, "max_leverage": 20, "tick_size": 10,
-            "min_size": 100, "lot_size": 10, "max_open_interest": 500000.0,
-            "px_decimals": 2, "mode": "ReduceOnly",
-        })
+        market = PerpMarket.model_validate(
+            {
+                "market_addr": "0x" + "b" * 64,
+                "market_name": "ETH-PERP",
+                "sz_decimals": 8,
+                "max_leverage": 20,
+                "tick_size": 10,
+                "min_size": 100,
+                "lot_size": 10,
+                "max_open_interest": 500000.0,
+                "px_decimals": 2,
+                "mode": "ReduceOnly",
+            }
+        )
         assert market.mode.value == "ReduceOnly"
 
     def test_missing_market_name_raises(self) -> None:
         """Missing required field SHALL raise ValidationError."""
         with pytest.raises(ValidationError):
-            PerpMarket.model_validate({
-                "market_addr": "0x" + "a" * 64,
-                # "market_name" missing
-                "sz_decimals": 4, "max_leverage": 50, "tick_size": 100,
-                "min_size": 1000, "lot_size": 100, "max_open_interest": 1000000.0,
-                "px_decimals": 1, "mode": "Open",
-            })
+            PerpMarket.model_validate(
+                {
+                    "market_addr": "0x" + "a" * 64,
+                    # "market_name" missing
+                    "sz_decimals": 4,
+                    "max_leverage": 50,
+                    "tick_size": 100,
+                    "min_size": 1000,
+                    "lot_size": 100,
+                    "max_open_interest": 1000000.0,
+                    "px_decimals": 1,
+                    "mode": "Open",
+                }
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -274,10 +314,18 @@ class TestCandlestickDtoValidation:
 
     def test_alias_mapping(self) -> None:
         """JSON keys t/T/o/h/l/c/v/i SHALL map to descriptive Python attrs."""
-        candle = Candlestick.model_validate({
-            "t": 1000, "T": 2000, "o": 10.0, "h": 12.0,
-            "l": 9.0, "c": 11.0, "v": 500.0, "i": "1h",
-        })
+        candle = Candlestick.model_validate(
+            {
+                "t": 1000,
+                "T": 2000,
+                "o": 10.0,
+                "h": 12.0,
+                "l": 9.0,
+                "c": 11.0,
+                "v": 500.0,
+                "i": "1h",
+            }
+        )
         assert candle.time_start == 1000
         assert candle.time_end == 2000
         assert candle.open_price == 10.0
@@ -290,11 +338,18 @@ class TestCandlestickDtoValidation:
     def test_missing_alias_field_raises(self) -> None:
         """Missing 'o' (open) alias SHALL raise ValidationError."""
         with pytest.raises(ValidationError):
-            Candlestick.model_validate({
-                "t": 1000, "T": 2000,
-                # "o" missing
-                "h": 12.0, "l": 9.0, "c": 11.0, "v": 500.0, "i": "1h",
-            })
+            Candlestick.model_validate(
+                {
+                    "t": 1000,
+                    "T": 2000,
+                    # "o" missing
+                    "h": 12.0,
+                    "l": 9.0,
+                    "c": 11.0,
+                    "v": 500.0,
+                    "i": "1h",
+                }
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -316,10 +371,17 @@ class TestAccountOverviewValidation:
         "usdc_cross_withdrawable_balance": 70.0,
         "usdc_isolated_withdrawable_balance": 0.0,
         "cross_account_position": 0.0,
-        "volume": None, "all_time_return": None, "pnl_90d": None,
-        "sharpe_ratio": None, "max_drawdown": None, "weekly_win_rate_12w": None,
-        "average_cash_position": None, "average_leverage": None,
-        "realized_pnl": None, "liquidation_fees_paid": None, "liquidation_losses": None,
+        "volume": None,
+        "all_time_return": None,
+        "pnl_90d": None,
+        "sharpe_ratio": None,
+        "max_drawdown": None,
+        "weekly_win_rate_12w": None,
+        "average_cash_position": None,
+        "average_leverage": None,
+        "realized_pnl": None,
+        "liquidation_fees_paid": None,
+        "liquidation_losses": None,
     }
 
     def test_minimal_valid_overview_parses(self) -> None:
@@ -350,13 +412,23 @@ class TestPositionDtoValidation:
     """PositionDto SHALL enforce required fields and allow null TP/SL."""
 
     VALID_POSITION: dict[str, Any] = {
-        "market": "0x" + "a" * 64, "user": "0x" + "b" * 64,
-        "size": 2.5, "user_leverage": 10, "entry_price": 49800.0,
-        "is_isolated": False, "is_deleted": False, "unrealized_funding": -25.5,
-        "estimated_liquidation_price": 45000.0, "transaction_version": 123,
+        "market": "0x" + "a" * 64,
+        "user": "0x" + "b" * 64,
+        "size": 2.5,
+        "user_leverage": 10,
+        "entry_price": 49800.0,
+        "is_isolated": False,
+        "is_deleted": False,
+        "unrealized_funding": -25.5,
+        "estimated_liquidation_price": 45000.0,
+        "transaction_version": 123,
         "has_fixed_sized_tpsls": False,
-        "tp_order_id": None, "tp_trigger_price": None, "tp_limit_price": None,
-        "sl_order_id": None, "sl_trigger_price": None, "sl_limit_price": None,
+        "tp_order_id": None,
+        "tp_trigger_price": None,
+        "tp_limit_price": None,
+        "sl_order_id": None,
+        "sl_trigger_price": None,
+        "sl_limit_price": None,
     }
 
     def test_valid_position_parses(self) -> None:
@@ -368,8 +440,10 @@ class TestPositionDtoValidation:
         """Positions with TP/SL SHALL parse correctly."""
         data = {
             **self.VALID_POSITION,
-            "tp_order_id": "tp1", "tp_trigger_price": 55000.0,
-            "sl_order_id": "sl1", "sl_trigger_price": 40000.0,
+            "tp_order_id": "tp1",
+            "tp_trigger_price": 55000.0,
+            "sl_order_id": "sl1",
+            "sl_trigger_price": 40000.0,
         }
         pos = UserPosition.model_validate(data)
         assert pos.tp_order_id == "tp1"
@@ -392,13 +466,23 @@ class TestOrderDtoValidation:
     """OrderDto (UserOpenOrder) SHALL enforce required fields."""
 
     VALID_ORDER: dict[str, Any] = {
-        "parent": "0x" + "0" * 64, "market": "0x" + "a" * 64,
-        "client_order_id": "c1", "order_id": "45678",
-        "is_buy": True, "is_tpsl": False, "details": "",
-        "transaction_version": 12345678, "unix_ms": 1699564800000,
-        "tp_trigger_price": None, "tp_limit_price": None,
-        "sl_trigger_price": None, "sl_limit_price": None,
-        "orig_size": 1.5, "remaining_size": 1.5, "size_delta": None, "price": 50000.5,
+        "parent": "0x" + "0" * 64,
+        "market": "0x" + "a" * 64,
+        "client_order_id": "c1",
+        "order_id": "45678",
+        "is_buy": True,
+        "is_tpsl": False,
+        "details": "",
+        "transaction_version": 12345678,
+        "unix_ms": 1699564800000,
+        "tp_trigger_price": None,
+        "tp_limit_price": None,
+        "sl_trigger_price": None,
+        "sl_limit_price": None,
+        "orig_size": 1.5,
+        "remaining_size": 1.5,
+        "size_delta": None,
+        "price": 50000.5,
     }
 
     def test_valid_order_parses(self) -> None:
@@ -428,11 +512,19 @@ class TestTwapDtoValidation:
     """TwapDto SHALL enforce status Literal and required fields."""
 
     VALID_TWAP: dict[str, Any] = {
-        "market": "0x" + "a" * 64, "is_buy": True, "order_id": "78901",
-        "client_order_id": "twap_123", "is_reduce_only": False,
-        "start_unix_ms": 1699564800000, "frequency_s": 300, "duration_s": 3600,
-        "orig_size": 100.0, "remaining_size": 75.0, "status": "Activated",
-        "transaction_unix_ms": 1699564800000, "transaction_version": 12345679,
+        "market": "0x" + "a" * 64,
+        "is_buy": True,
+        "order_id": "78901",
+        "client_order_id": "twap_123",
+        "is_reduce_only": False,
+        "start_unix_ms": 1699564800000,
+        "frequency_s": 300,
+        "duration_s": 3600,
+        "orig_size": 100.0,
+        "remaining_size": 75.0,
+        "status": "Activated",
+        "transaction_unix_ms": 1699564800000,
+        "transaction_version": 12345679,
     }
 
     def test_valid_twap_parses(self) -> None:

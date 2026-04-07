@@ -88,7 +88,10 @@ class TestReaderTopicConstruction:
     @pytest.fixture
     def deps(self, mock_ws: MagicMock) -> ReaderDeps:
         return ReaderDeps(
-            config=TESTNET_CONFIG, ws=mock_ws, aptos=AsyncMock(), api_key="k",
+            config=TESTNET_CONFIG,
+            ws=mock_ws,
+            aptos=AsyncMock(),
+            api_key="k",
         )
 
     def test_market_price_subscribe_topic(self, deps: ReaderDeps, mock_ws: MagicMock) -> None:
@@ -189,13 +192,22 @@ class TestMarketDataMessages:
         """AllMarketPricesWsMessage SHALL parse prices array."""
         from decibel.read._market_prices import AllMarketPricesWsMessage
 
-        msg = AllMarketPricesWsMessage.model_validate({
-            "prices": [
-                {"market": "0x" + "a" * 64, "oracle_px": 100.0, "mark_px": 99.0,
-                 "mid_px": 99.5, "funding_rate_bps": 1.0, "is_funding_positive": True,
-                 "transaction_unix_ms": 1000, "open_interest": 50.0},
-            ]
-        })
+        msg = AllMarketPricesWsMessage.model_validate(
+            {
+                "prices": [
+                    {
+                        "market": "0x" + "a" * 64,
+                        "oracle_px": 100.0,
+                        "mark_px": 99.0,
+                        "mid_px": 99.5,
+                        "funding_rate_bps": 1.0,
+                        "is_funding_positive": True,
+                        "transaction_unix_ms": 1000,
+                        "open_interest": 50.0,
+                    },
+                ]
+            }
+        )
         assert len(msg.prices) == 1
         assert msg.prices[0].oracle_px == 100.0
 
@@ -217,11 +229,14 @@ class TestMarketDataMessages:
         """MarketDepth SHALL parse bids/asks arrays of {price, size}."""
         from decibel.read._market_depth import MarketDepth
 
-        depth = MarketDepth.model_validate({
-            "market": "0x" + "a" * 64, "unix_ms": 1000,
-            "bids": [{"price": 100.0, "size": 10.0}],
-            "asks": [{"price": 101.0, "size": 5.0}],
-        })
+        depth = MarketDepth.model_validate(
+            {
+                "market": "0x" + "a" * 64,
+                "unix_ms": 1000,
+                "bids": [{"price": 100.0, "size": 10.0}],
+                "asks": [{"price": 101.0, "size": 5.0}],
+            }
+        )
         assert depth.bids[0].price == 100.0
         assert depth.asks[0].size == 5.0
 
@@ -229,10 +244,14 @@ class TestMarketDataMessages:
         """Empty bids/asks SHALL be valid (thin market)."""
         from decibel.read._market_depth import MarketDepth
 
-        depth = MarketDepth.model_validate({
-            "market": "0x" + "a" * 64, "unix_ms": 1000,
-            "bids": [], "asks": [],
-        })
+        depth = MarketDepth.model_validate(
+            {
+                "market": "0x" + "a" * 64,
+                "unix_ms": 1000,
+                "bids": [],
+                "asks": [],
+            }
+        )
         assert depth.bids == []
         assert depth.asks == []
 
@@ -249,17 +268,31 @@ class TestAccountMessages:
         """UserPositionsWsMessage SHALL parse positions array."""
         from decibel.read._user_positions import UserPositionsWsMessage
 
-        msg = UserPositionsWsMessage.model_validate({
-            "positions": [{
-                "market": "0x" + "a" * 64, "user": "0x" + "b" * 64,
-                "size": 2.5, "user_leverage": 10, "entry_price": 100.0,
-                "is_isolated": False, "is_deleted": False,
-                "unrealized_funding": -1.0, "estimated_liquidation_price": 50.0,
-                "transaction_version": 1, "has_fixed_sized_tpsls": False,
-                "tp_order_id": None, "tp_trigger_price": None, "tp_limit_price": None,
-                "sl_order_id": None, "sl_trigger_price": None, "sl_limit_price": None,
-            }]
-        })
+        msg = UserPositionsWsMessage.model_validate(
+            {
+                "positions": [
+                    {
+                        "market": "0x" + "a" * 64,
+                        "user": "0x" + "b" * 64,
+                        "size": 2.5,
+                        "user_leverage": 10,
+                        "entry_price": 100.0,
+                        "is_isolated": False,
+                        "is_deleted": False,
+                        "unrealized_funding": -1.0,
+                        "estimated_liquidation_price": 50.0,
+                        "transaction_version": 1,
+                        "has_fixed_sized_tpsls": False,
+                        "tp_order_id": None,
+                        "tp_trigger_price": None,
+                        "tp_limit_price": None,
+                        "sl_order_id": None,
+                        "sl_trigger_price": None,
+                        "sl_limit_price": None,
+                    }
+                ]
+            }
+        )
         assert len(msg.positions) == 1
         assert msg.positions[0].size == 2.5
 
@@ -267,39 +300,71 @@ class TestAccountMessages:
         """UserOpenOrdersWsMessage SHALL parse orders array."""
         from decibel.read._user_open_orders import UserOpenOrdersWsMessage
 
-        msg = UserOpenOrdersWsMessage.model_validate({
-            "orders": [{
-                "parent": "0x" + "0" * 64, "market": "0x" + "a" * 64,
-                "order_id": "123", "client_order_id": "c1", "is_buy": True, "is_tpsl": False,
-                "details": "", "transaction_version": 1, "unix_ms": 1000,
-                "tp_trigger_price": None, "tp_limit_price": None,
-                "sl_trigger_price": None, "sl_limit_price": None,
-                "orig_size": 1.0, "remaining_size": 1.0, "size_delta": None, "price": 100.0,
-            }]
-        })
+        msg = UserOpenOrdersWsMessage.model_validate(
+            {
+                "orders": [
+                    {
+                        "parent": "0x" + "0" * 64,
+                        "market": "0x" + "a" * 64,
+                        "order_id": "123",
+                        "client_order_id": "c1",
+                        "is_buy": True,
+                        "is_tpsl": False,
+                        "details": "",
+                        "transaction_version": 1,
+                        "unix_ms": 1000,
+                        "tp_trigger_price": None,
+                        "tp_limit_price": None,
+                        "sl_trigger_price": None,
+                        "sl_limit_price": None,
+                        "orig_size": 1.0,
+                        "remaining_size": 1.0,
+                        "size_delta": None,
+                        "price": 100.0,
+                    }
+                ]
+            }
+        )
         assert msg.orders[0].order_id == "123"
 
     def test_order_update_nested_structure(self) -> None:
         """OrderUpdate WS message SHALL have nested {status, details, order} structure."""
         from decibel.read._user_order_history import UserOrdersWsMessage
 
-        msg = UserOrdersWsMessage.model_validate({
-            "order": {
-                "status": "Filled", "details": "",
+        msg = UserOrdersWsMessage.model_validate(
+            {
                 "order": {
-                    "parent": "0x" + "0" * 64, "market": "0x" + "a" * 64,
-                    "client_order_id": "c1", "order_id": "456",
-                    "status": "Filled", "order_type": "Market",
-                    "trigger_condition": "None", "order_direction": "Close Short",
-                    "orig_size": 2.0, "remaining_size": 0.0, "size_delta": None,
-                    "price": 100.0, "is_buy": False, "is_reduce_only": False,
-                    "is_tpsl": False, "details": "",
-                    "tp_order_id": None, "tp_trigger_price": None, "tp_limit_price": None,
-                    "sl_order_id": None, "sl_trigger_price": None, "sl_limit_price": None,
-                    "transaction_version": 1, "unix_ms": 1000,
-                },
+                    "status": "Filled",
+                    "details": "",
+                    "order": {
+                        "parent": "0x" + "0" * 64,
+                        "market": "0x" + "a" * 64,
+                        "client_order_id": "c1",
+                        "order_id": "456",
+                        "status": "Filled",
+                        "order_type": "Market",
+                        "trigger_condition": "None",
+                        "order_direction": "Close Short",
+                        "orig_size": 2.0,
+                        "remaining_size": 0.0,
+                        "size_delta": None,
+                        "price": 100.0,
+                        "is_buy": False,
+                        "is_reduce_only": False,
+                        "is_tpsl": False,
+                        "details": "",
+                        "tp_order_id": None,
+                        "tp_trigger_price": None,
+                        "tp_limit_price": None,
+                        "sl_order_id": None,
+                        "sl_trigger_price": None,
+                        "sl_limit_price": None,
+                        "transaction_version": 1,
+                        "unix_ms": 1000,
+                    },
+                }
             }
-        })
+        )
         assert msg.order.status == "Filled"
         assert msg.order.order.remaining_size == 0.0
 
@@ -317,14 +382,30 @@ class TestNotificationTypes:
         from decibel.read._user_notifications import NotificationType
 
         spec_types = [
-            "MarketOrderPlaced", "LimitOrderPlaced", "StopMarketOrderPlaced",
-            "StopMarketOrderTriggered", "StopLimitOrderPlaced", "StopLimitOrderTriggered",
-            "OrderPartiallyFilled", "OrderFilled", "OrderSizeReduced",
-            "OrderCancelled", "OrderRejected", "OrderErrored",
-            "TwapOrderPlaced", "TwapOrderTriggered", "TwapOrderCompleted",
-            "TwapOrderCancelled", "TwapOrderErrored",
-            "AccountDeposit", "AccountWithdrawal",
-            "TpSlSet", "TpHit", "SlHit", "TpCancelled", "SlCancelled",
+            "MarketOrderPlaced",
+            "LimitOrderPlaced",
+            "StopMarketOrderPlaced",
+            "StopMarketOrderTriggered",
+            "StopLimitOrderPlaced",
+            "StopLimitOrderTriggered",
+            "OrderPartiallyFilled",
+            "OrderFilled",
+            "OrderSizeReduced",
+            "OrderCancelled",
+            "OrderRejected",
+            "OrderErrored",
+            "TwapOrderPlaced",
+            "TwapOrderTriggered",
+            "TwapOrderCompleted",
+            "TwapOrderCancelled",
+            "TwapOrderErrored",
+            "AccountDeposit",
+            "AccountWithdrawal",
+            "TpSlSet",
+            "TpHit",
+            "SlHit",
+            "TpCancelled",
+            "SlCancelled",
         ]
         enum_values = {e.value for e in NotificationType}
         for expected in spec_types:
@@ -365,10 +446,12 @@ class TestWsMessageParsing:
     def test_bigint_in_message(self) -> None:
         """Messages with $bigint values SHALL parse to Python int."""
         ws = DecibelWsSubscription(TESTNET_CONFIG, api_key="test")
-        raw = json.dumps({
-            "topic": "test_topic",
-            "event_uid": {"$bigint": "999999999999999999999"},
-        })
+        raw = json.dumps(
+            {
+                "topic": "test_topic",
+                "event_uid": {"$bigint": "999999999999999999999"},
+            }
+        )
         result = ws._parse_message(raw)
         assert result is not None
         _, data = result
