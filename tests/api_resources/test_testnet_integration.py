@@ -362,6 +362,166 @@ class TestVaultsIntegration:
 
 
 # ---------------------------------------------------------------------------
+# SPEC-REST Section 2.1: GET /api/v1/prices (single market)
+# ---------------------------------------------------------------------------
+
+
+class TestSingleMarketPriceIntegration:
+    """Verify fetching a single market's price by name."""
+
+    async def test_get_price_by_name(self, read: DecibelReadDex) -> None:
+        """SHALL return price for a specific market by name."""
+        markets = await read.markets.get_all()
+        prices = await read.market_prices.get_by_name(markets[0].market_name)
+        assert isinstance(prices, list)
+        assert len(prices) >= 1
+        assert prices[0].market == markets[0].market_addr
+
+
+# ---------------------------------------------------------------------------
+# SPEC-REST: GET /api/v1/portfolio_chart
+# ---------------------------------------------------------------------------
+
+
+class TestPortfolioChartIntegration:
+    """Verify /api/v1/portfolio_chart against live testnet."""
+
+    async def test_get_portfolio_chart(self, read: DecibelReadDex) -> None:
+        """SHALL return chart data (may be empty for new accounts)."""
+        from decibel._utils import get_primary_subaccount_addr
+
+        # Use the vault manager address from vaults as a known funded account
+        vaults = await read.vaults.get_vaults(limit=1, offset=0)
+        if not vaults.items:
+            pytest.skip("No vaults to get a known subaccount")
+
+        manager = vaults.items[0].manager
+        sub_addr = get_primary_subaccount_addr(
+            manager, TESTNET_CONFIG.compat_version, TESTNET_CONFIG.deployment.package
+        )
+
+        chart = await read.portfolio_chart.get_by_addr(
+            sub_addr=sub_addr, time_range="30d", data_type="pnl"
+        )
+        assert isinstance(chart, list)
+
+
+# ---------------------------------------------------------------------------
+# SPEC-REST: GET /api/v1/funding_rate_history
+# ---------------------------------------------------------------------------
+
+
+class TestFundingHistoryIntegration:
+    """Verify /api/v1/funding_rate_history against live testnet."""
+
+    async def test_get_funding_history(self, read: DecibelReadDex) -> None:
+        """SHALL return funding history (may be empty)."""
+        vaults = await read.vaults.get_vaults(limit=1, offset=0)
+        if not vaults.items:
+            pytest.skip("No vaults on testnet")
+
+        from decibel._utils import get_primary_subaccount_addr
+
+        manager = vaults.items[0].manager
+        sub_addr = get_primary_subaccount_addr(
+            manager, TESTNET_CONFIG.compat_version, TESTNET_CONFIG.deployment.package
+        )
+
+        result = await read.user_funding_history.get_by_addr(sub_addr=sub_addr)
+        assert isinstance(result.items, list)
+
+
+# ---------------------------------------------------------------------------
+# SPEC-REST: GET /api/v1/twap_history
+# ---------------------------------------------------------------------------
+
+
+class TestTwapHistoryIntegration:
+    """Verify /api/v1/twap_history against live testnet."""
+
+    async def test_get_twap_history(self, read: DecibelReadDex) -> None:
+        """SHALL return TWAP history (may be empty)."""
+        vaults = await read.vaults.get_vaults(limit=1, offset=0)
+        if not vaults.items:
+            pytest.skip("No vaults on testnet")
+
+        from decibel._utils import get_primary_subaccount_addr
+
+        manager = vaults.items[0].manager
+        sub_addr = get_primary_subaccount_addr(
+            manager, TESTNET_CONFIG.compat_version, TESTNET_CONFIG.deployment.package
+        )
+
+        result = await read.user_twap_history.get_by_addr(sub_addr=sub_addr)
+        assert isinstance(result.items, list)
+
+
+# ---------------------------------------------------------------------------
+# SPEC-REST: GET /api/v1/bulk_orders
+# ---------------------------------------------------------------------------
+
+
+class TestBulkOrdersIntegration:
+    """Verify /api/v1/bulk_orders against live testnet."""
+
+    async def test_get_bulk_orders(self, read: DecibelReadDex) -> None:
+        """SHALL return bulk orders (may be empty)."""
+        vaults = await read.vaults.get_vaults(limit=1, offset=0)
+        if not vaults.items:
+            pytest.skip("No vaults on testnet")
+
+        from decibel._utils import get_primary_subaccount_addr
+
+        manager = vaults.items[0].manager
+        sub_addr = get_primary_subaccount_addr(
+            manager, TESTNET_CONFIG.compat_version, TESTNET_CONFIG.deployment.package
+        )
+
+        orders = await read.user_bulk_orders.get_by_addr(sub_addr=sub_addr)
+        assert isinstance(orders, list)
+
+
+# ---------------------------------------------------------------------------
+# SPEC-REST: GET /api/v1/account_owned_vaults
+# ---------------------------------------------------------------------------
+
+
+class TestUserOwnedVaultsIntegration:
+    """Verify /api/v1/account_owned_vaults against live testnet."""
+
+    async def test_get_user_owned_vaults(self, read: DecibelReadDex) -> None:
+        """SHALL return owned vaults for a vault manager."""
+        vaults = await read.vaults.get_vaults(limit=1, offset=0)
+        if not vaults.items:
+            pytest.skip("No vaults on testnet")
+
+        manager = vaults.items[0].manager
+        result = await read.vaults.get_user_owned_vaults(owner_addr=manager)
+        assert hasattr(result, "items")
+        assert result.total_count >= 1
+        assert result.items[0].vault_address.startswith("0x")
+
+
+# ---------------------------------------------------------------------------
+# SPEC-REST: GET /api/v1/account_vault_performance
+# ---------------------------------------------------------------------------
+
+
+class TestVaultPerformanceIntegration:
+    """Verify /api/v1/account_vault_performance against live testnet."""
+
+    async def test_get_vault_performance(self, read: DecibelReadDex) -> None:
+        """SHALL return vault performance for a depositor."""
+        vaults = await read.vaults.get_vaults(limit=1, offset=0)
+        if not vaults.items:
+            pytest.skip("No vaults on testnet")
+
+        manager = vaults.items[0].manager
+        performances = await read.vaults.get_user_performances_on_vaults(owner_addr=manager)
+        assert isinstance(performances, list)
+
+
+# ---------------------------------------------------------------------------
 # WebSocket integration — quick smoke test
 # ---------------------------------------------------------------------------
 
