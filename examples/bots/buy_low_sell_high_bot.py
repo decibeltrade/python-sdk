@@ -145,9 +145,10 @@ class BotConfig:
     @classmethod
     def from_env(cls) -> BotConfig:
         private_key = os.environ.get("PRIVATE_KEY", "")
-        api_key = os.environ.get("APTOS_NODE_API_KEY", "")
+        # Accept either DECIBEL_API_KEY or APTOS_NODE_API_KEY
+        api_key = os.environ.get("DECIBEL_API_KEY") or os.environ.get("APTOS_NODE_API_KEY", "")
         if not private_key or not api_key:
-            print("Error: PRIVATE_KEY and APTOS_NODE_API_KEY must be set")
+            print("Error: PRIVATE_KEY and DECIBEL_API_KEY (or APTOS_NODE_API_KEY) must be set")
             print("See docstring at top of this file for setup instructions")
             sys.exit(1)
 
@@ -301,9 +302,7 @@ class BuyLowSellHighBot:
 
         if self.state.phase == BotPhase.WAITING_FOR_PRICE:
             # Schedule the buy order placement (can't await in a sync callback)
-            asyncio.get_event_loop().call_soon(
-                lambda: asyncio.ensure_future(self._place_buy_order())
-            )
+            asyncio.get_running_loop().create_task(self._place_buy_order())
 
     def _on_order_update(self, msg: UserOrdersWsMessage) -> None:
         """Called on each order status change from WebSocket."""
@@ -331,9 +330,7 @@ class BuyLowSellHighBot:
                 entry = order.price or self.state.latest_oracle_price
                 self.state.buy_entry_price = entry
                 log.info("BUY FILLED at %.2f — placing sell order...", entry)
-                asyncio.get_event_loop().call_soon(
-                    lambda: asyncio.ensure_future(self._place_sell_order())
-                )
+                asyncio.get_running_loop().create_task(self._place_sell_order())
             elif self.state.phase == BotPhase.SELL_PLACED:
                 exit_price = order.price or 0
                 pnl = exit_price - self.state.buy_entry_price
@@ -494,10 +491,13 @@ async def main() -> None:
     cfg = BotConfig.from_env()
     bot = BuyLowSellHighBot(cfg)
 
-    # Handle Ctrl+C gracefully
-    loop = asyncio.get_event_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, bot.stop)
+    # Handle Ctrl+C gracefully (not supported on Windows)
+    try:
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, bot.stop)
+    except NotImplementedError:
+        log.warning("Signal handlers not supported on this platform")
 
     await bot.start()
 

@@ -130,7 +130,8 @@ class TestWsUnsubscribe:
             unsub = ws.subscribe("t", MagicMock, callback)
 
         assert len(ws._subscriptions["t"]) == 1
-        unsub()
+        with patch.object(ws, "_delayed_close", new_callable=AsyncMock):
+            unsub()
         assert "t" not in ws._subscriptions
 
     async def test_unsubscribe_keeps_other_listeners(self, config: DecibelConfig) -> None:
@@ -152,7 +153,8 @@ class TestWsUnsubscribe:
         with patch.object(ws, "_open", new_callable=AsyncMock):
             unsub = ws.subscribe("t", MagicMock, MagicMock())
 
-        unsub()
+        with patch.object(ws, "_delayed_close", new_callable=AsyncMock):
+            unsub()
         # unsubscribe message sent via create_task
         await asyncio.sleep(0)
         mock_conn.send.assert_awaited()

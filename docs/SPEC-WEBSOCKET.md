@@ -107,6 +107,10 @@ The SDK SHALL implement automatic reconnection with:
 }
 ```
 
+> **Note:** Subscribe/unsubscribe response (ACK) frames do NOT contain a `topic` field.
+> They are control messages identified by the `success` field. Clients SHALL treat any
+> message containing a `success` field as a non-data ACK and silently ignore it.
+
 ### 2.3 Subscribe Response (Error)
 
 ```json
@@ -397,7 +401,7 @@ If aggregation level is omitted, defaults to `1`.
 
 ### 4.2 User Positions
 
-**Topic:** `user_positions:{userAddr}`
+**Topic:** `account_positions:{userAddr}`
 
 **Message Schema:**
 ```json
@@ -446,7 +450,7 @@ If aggregation level is omitted, defaults to `1`.
 
 ### 4.3 User Open Orders
 
-**Topic:** `user_open_orders:{userAddr}`
+**Topic:** `account_open_orders:{userAddr}`
 
 **Message Schema:**
 ```json
@@ -491,44 +495,7 @@ If aggregation level is omitted, defaults to `1`.
 
 ---
 
-### 4.4 User Order History
-
-**Topic:** `user_order_history:{userAddr}`
-
-**Message Schema:**
-```json
-{
-  "topic": "user_order_history:0x1234...",
-  "orders": [ ... ]
-}
-```
-
-**Payload Type:** `UserOrderHistoryResponse` (same shape as UserOpenOrdersResponse)
-
----
-
-### 4.5 User Trade History
-
-**Topic:** `user_trade_history:{userAddr}`
-
-**Message Schema:**
-```json
-{
-  "topic": "user_trade_history:0x1234...",
-  "trades": [ ... ]
-}
-```
-
-**Payload Type:** `UserTradeHistoryResponse`
-
-| Field | Type | Required |
-|-------|------|----------|
-| `topic` | string | Yes |
-| `trades` | TradeDto[] | Yes |
-
----
-
-### 4.6 User Trades (Live)
+### 4.4 User Trades
 
 **Topic:** `user_trades:{userAddr}`
 
@@ -905,10 +872,8 @@ All topic strings follow the pattern: `{channel_name}:{parameter}:{optional_para
 | Market Trades | `trades:{marketAddr}` | market address |
 | Market Candlestick | `market_candlestick:{marketAddr}:{interval}` | market address, interval |
 | Account Overview | `account_overview:{userAddr}` | subaccount address |
-| User Positions | `user_positions:{userAddr}` | subaccount address |
-| User Open Orders | `user_open_orders:{userAddr}` | subaccount address |
-| User Order History | `user_order_history:{userAddr}` | subaccount address |
-| User Trade History | `user_trade_history:{userAddr}` | subaccount address |
+| User Positions | `account_positions:{userAddr}` | subaccount address |
+| User Open Orders | `account_open_orders:{userAddr}` | subaccount address |
 | User Trades | `user_trades:{userAddr}` | subaccount address |
 | User Funding History | `user_funding_rate_history:{userAddr}` | subaccount address |
 | Order Updates | `order_updates:{userAddr}` | subaccount address |
@@ -916,3 +881,8 @@ All topic strings follow the pattern: `{channel_name}:{parameter}:{optional_para
 | Bulk Order Fills | `bulk_order_fills:{userAddr}` | subaccount address |
 | User Active TWAPs | `user_active_twaps:{userAddr}` | subaccount address |
 | Notifications | `notifications:{userAddr}` | subaccount address |
+
+> **Note:** The AsyncAPI spec at docs.decibel.trade uses `user_positions` and `user_open_orders`
+> as channel names, but the actual server topics used by the SDK are `account_positions` and
+> `account_open_orders`. The SDK's `UserOrderHistoryReader` subscribes to `order_updates` (not
+> `user_order_history`) which provides real-time order status change events.
