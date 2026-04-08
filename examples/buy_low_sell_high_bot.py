@@ -202,6 +202,7 @@ class BuyLowSellHighBot:
         self.cfg = cfg
         self.state = BotState()
         self._shutdown = asyncio.Event()
+        self._order_lock = asyncio.Lock()
 
         # SDK clients — initialized in start()
         self._read: DecibelReadDex | None = None
@@ -356,14 +357,28 @@ class BuyLowSellHighBot:
     def _on_ws_error(self, error: Exception) -> None:
         log.error("WebSocket error: %s", error)
 
+    # --- Helpers ---
+
+    def _round_size_to_lot(self, size_chain_units: int) -> int:
+        """Round size down to nearest lot_size multiple, enforce min_size."""
+        assert self._market_info is not None
+        lot = int(self._market_info.lot_size)
+        min_sz = int(self._market_info.min_size)
+        rounded = (size_chain_units // lot) * lot
+        return max(rounded, min_sz)
+
     # --- Order placement ---
 
     async def _place_buy_order(self) -> None:
         """Place a limit buy order at spread below oracle price."""
-        if self.state.phase != BotPhase.WAITING_FOR_PRICE:
-            return
-        if self.state.latest_oracle_price <= 0:
-            return
+        async with self._order_lock:
+            if self.state.phase != BotPhase.WAITING_FOR_PRICE:
+                return
+            if self.state.latest_oracle_price <= 0:
+                return
+
+            # Immediately transition to prevent duplicate orders
+            self.state.phase = BotPhase.BUY_PLACED
 
         assert self._write is not None
         assert self._market_info is not None
@@ -373,20 +388,20 @@ class BuyLowSellHighBot:
         buy_price_human = self.state.latest_oracle_price * (1 - self.cfg.buy_spread_pct / 100)
         buy_price = amount_to_chain_units(buy_price_human, mkt.px_decimals)
 
-        # Calculate size from notional USD
+        # Calculate size from notional USD, rounded to lot_size
         size_human = self.cfg.order_size_usd / self.state.latest_oracle_price
-        size = amount_to_chain_units(size_human, mkt.sz_decimals)
-        size = max(size, int(mkt.min_size))  # enforce minimum
+        size_raw = amount_to_chain_units(size_human, mkt.sz_decimals)
+        size = self._round_size_to_lot(size_raw)
 
         client_id = self.state.next_client_order_id("buy")
         self.state.active_client_order_id = client_id
 
         log.info(
-            "Placing BUY: price=%.2f (oracle=%.2f, spread=%.1f%%), size=%.6f, id=%s",
+            "Placing BUY: price=%.2f (oracle=%.2f, spread=%.1f%%), size=%d, id=%s",
             buy_price_human,
             self.state.latest_oracle_price,
             self.cfg.buy_spread_pct,
-            size_human,
+            size,
             client_id,
         )
 
@@ -403,7 +418,6 @@ class BuyLowSellHighBot:
             )
 
             if isinstance(result, PlaceOrderSuccess):
-                self.state.phase = BotPhase.BUY_PLACED
                 self.state.buy_order_tx = result.transaction_hash
                 log.info("BUY order placed — tx=%s", result.transaction_hash)
             else:
@@ -416,8 +430,12 @@ class BuyLowSellHighBot:
 
     async def _place_sell_order(self) -> None:
         """Place a limit sell order at spread above entry price."""
-        if self.state.phase != BotPhase.BUY_PLACED:
-            return
+        async with self._order_lock:
+            if self.state.phase != BotPhase.BUY_PLACED:
+                return
+
+            # Immediately transition to prevent duplicates
+            self.state.phase = BotPhase.SELL_PLACED
 
         assert self._write is not None
         assert self._market_info is not None
@@ -427,10 +445,10 @@ class BuyLowSellHighBot:
         sell_price_human = self.state.buy_entry_price * (1 + self.cfg.sell_spread_pct / 100)
         sell_price = amount_to_chain_units(sell_price_human, mkt.px_decimals)
 
-        # Same size as the buy
+        # Same size as the buy, rounded to lot_size
         size_human = self.cfg.order_size_usd / self.state.buy_entry_price
-        size = amount_to_chain_units(size_human, mkt.sz_decimals)
-        size = max(size, int(mkt.min_size))
+        size_raw = amount_to_chain_units(size_human, mkt.sz_decimals)
+        size = self._round_size_to_lot(size_raw)
 
         client_id = self.state.next_client_order_id("sell")
         self.state.active_client_order_id = client_id
@@ -456,7 +474,6 @@ class BuyLowSellHighBot:
             )
 
             if isinstance(result, PlaceOrderSuccess):
-                self.state.phase = BotPhase.SELL_PLACED
                 self.state.sell_order_tx = result.transaction_hash
                 log.info("SELL order placed — tx=%s", result.transaction_hash)
             else:
