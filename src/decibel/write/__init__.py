@@ -311,7 +311,7 @@ class DecibelWriteDex(BaseSDK):
                 transactionHash=tx_response.get("hash", ""),
             )
         except Exception as e:
-            logger.error("Error placing order: type=%s message=%s", type(e).__name__, str(e))
+            logger.exception("Error placing order: type=%s message=%s", type(e).__name__, str(e))
             return PlaceOrderFailure(
                 success=False,
                 error=f"{type(e).__name__}: {str(e)}",
@@ -1343,7 +1343,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                 transactionHash=tx_response.get("hash", ""),
             )
         except Exception as e:
-            logger.error("Error placing order: type=%s message=%s", type(e).__name__, str(e))
+            logger.exception("Error placing order: type=%s message=%s", type(e).__name__, str(e))
             return PlaceOrderFailure(
                 success=False,
                 error=f"{type(e).__name__}: {str(e)}",
