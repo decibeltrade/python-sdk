@@ -311,10 +311,10 @@ class DecibelWriteDex(BaseSDK):
                 transactionHash=tx_response.get("hash", ""),
             )
         except Exception as e:
-            logger.error("Error placing order: %s", e)
+            logger.exception("Error placing order: type=%s message=%s", type(e).__name__, str(e))
             return PlaceOrderFailure(
                 success=False,
-                error=str(e),
+                error=f"{type(e).__name__}: {str(e)}",
             )
 
     async def trigger_matching(
@@ -1343,10 +1343,10 @@ class DecibelWriteDexSync(BaseSDKSync):
                 transactionHash=tx_response.get("hash", ""),
             )
         except Exception as e:
-            logger.error("Error placing order: %s", e)
+            logger.exception("Error placing order: type=%s message=%s", type(e).__name__, str(e))
             return PlaceOrderFailure(
                 success=False,
-                error=str(e),
+                error=f"{type(e).__name__}: {str(e)}",
             )
 
     def trigger_matching(
