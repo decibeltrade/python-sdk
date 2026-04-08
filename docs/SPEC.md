@@ -126,7 +126,6 @@ The REST API SHALL require Bearer token authentication.
 | Header | Value | Required |
 |--------|-------|----------|
 | `Authorization` | `Bearer <API_KEY>` | YES |
-| `Origin` | Application origin URL (e.g., `https://app.decibel.trade`) | YES |
 
 The API key SHALL be obtained from the Geomi service (https://geomi.dev).
 
@@ -267,7 +266,7 @@ Detailed API specifications are in the following documents:
 ## 8. Assumptions & Preferences
 
 ### 8.1 Language & Runtime
-- Python 3.10+ (for union type syntax and modern typing)
+- Python 3.11+ (matches `requires-python = ">=3.11"` in pyproject.toml)
 - Async-first design using `asyncio` with synchronous wrappers
 - `httpx` for HTTP client (async + sync support)
 - `websockets` for WebSocket connections

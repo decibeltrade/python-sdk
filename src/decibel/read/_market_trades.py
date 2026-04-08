@@ -21,23 +21,47 @@ __all__ = [
 
 
 class MarketTrade(BaseModel):
+    """REST trade model — fields match the /api/v1/trades response."""
+
     model_config = ConfigDict(populate_by_name=True)
 
     account: str
     market: str
     action: str
-    trade_id: str | int | None = None
+    trade_id: str | int
     size: float
     price: float
     is_profit: bool
     realized_pnl_amount: float
-    is_funding_positive: bool | None = None
     realized_funding_amount: float
     is_rebate: bool
     fee_amount: float
-    order_id: str | None = None
-    client_order_id: str | None = None
-    source: str | None = None
+    order_id: str
+    client_order_id: str
+    source: str
+    transaction_unix_ms: int
+    transaction_version: int
+
+
+class _WsTradeItem(BaseModel):
+    """WS trade model — includes is_funding_positive, lacks source."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    account: str
+    market: str
+    action: str
+    trade_id: int
+    size: float
+    price: float
+    is_profit: bool
+    realized_pnl_amount: float
+    is_funding_positive: bool
+    realized_funding_amount: float
+    is_rebate: bool
+    fee_amount: float
+    order_id: str
+    client_order_id: str
     transaction_unix_ms: int
     transaction_version: int
 
@@ -50,7 +74,7 @@ class MarketTradesResponse(BaseModel):
 class MarketTradeWsMessage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    trades: list[MarketTrade]
+    trades: list[_WsTradeItem]
 
 
 class MarketTradesReader(BaseReader):

@@ -91,7 +91,7 @@ def subaccount_addr(account):
 @pytest.fixture(scope="module")
 def eth_market(read_client):
     """Get ETH market info for order tests."""
-    markets = asyncio.get_event_loop().run_until_complete(read_client.markets.get_all())
+    markets = asyncio.run(read_client.markets.get_all())
     eth = next((m for m in markets if "ETH" in m.market_name), None)
     if eth is None:
         pytest.skip("No ETH market found on testnet")

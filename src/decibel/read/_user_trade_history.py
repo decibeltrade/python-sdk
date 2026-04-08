@@ -42,7 +42,7 @@ class UserTrade(BaseModel):
 
 class UserTradesResponse(BaseModel):
     items: list[UserTrade]
-    total_count: int = 0
+    total_count: int | None = None
 
 
 class UserTradesWsMessage(BaseModel):

@@ -44,14 +44,6 @@ def read() -> DecibelReadDex:
     return DecibelReadDex(TESTNET_CONFIG, api_key=DECIBEL_API_KEY)
 
 
-@pytest.fixture(scope="module")
-def first_market_addr(read: DecibelReadDex) -> str:
-    """Get a valid market address from testnet for parameterized tests."""
-    markets = asyncio.get_event_loop().run_until_complete(read.markets.get_all())
-    assert len(markets) > 0, "Testnet should have at least one market"
-    return markets[0].market_addr
-
-
 # ---------------------------------------------------------------------------
 # SPEC-REST Section 2.2: GET /api/v1/markets
 # ---------------------------------------------------------------------------
@@ -164,14 +156,14 @@ class TestPricesIntegration:
 class TestCandlesticksIntegration:
     """Verify /api/v1/candlesticks against live testnet."""
 
-    async def test_get_candlesticks(self, read: DecibelReadDex, first_market_addr: str) -> None:
+    async def test_get_candlesticks(self, read: DecibelReadDex) -> None:
         """SHALL return candlestick data for a valid market and time range."""
         from decibel.read._candlesticks import CandlestickInterval
 
+        markets = await read.markets.get_all()
         now_ms = int(time.time() * 1000)
         candles = await read.candlesticks.get_by_name(
-            # Use market name from first market
-            market_name=(await read.markets.get_all())[0].market_name,
+            market_name=markets[0].market_name,
             interval=CandlestickInterval.ONE_DAY,
             start_time=now_ms - 86400000 * 30,  # 30 days ago
             end_time=now_ms,

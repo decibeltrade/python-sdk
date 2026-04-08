@@ -34,8 +34,9 @@ All REST endpoints SHALL use HTTPS GET requests. There are no POST/PUT/DELETE en
 | Header | Value | Required |
 |--------|-------|----------|
 | `Authorization` | `Bearer <API_KEY>` | YES |
-| `Origin` | e.g. `https://app.decibel.trade` | YES |
 | `Content-Type` | `application/json` | For PATCH only |
+
+> **Note:** The `Origin` header is required by the server for browser-based requests but the SDK does NOT send it. Server-side enforcement may vary by deployment.
 
 ### 1.3 Response Format
 

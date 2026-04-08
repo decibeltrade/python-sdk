@@ -430,10 +430,28 @@ class TestWsMessageParsing:
         assert topic == "all_market_prices"
         assert "prices" in data
 
-    def test_non_topic_message_raises(self) -> None:
-        """Messages without 'topic' field SHALL raise ValueError."""
+    def test_subscribe_response_returns_none(self) -> None:
+        """Subscribe responses (success field, no topic) SHALL return None."""
         ws = DecibelWsSubscription(TESTNET_CONFIG, api_key="test")
         raw = json.dumps({"success": True, "message": "Subscribed"})
+        assert ws._parse_message(raw) is None
+
+    def test_unsubscribe_response_returns_none(self) -> None:
+        """Unsubscribe responses SHALL also return None."""
+        ws = DecibelWsSubscription(TESTNET_CONFIG, api_key="test")
+        raw = json.dumps({"success": True, "message": "Unsubscribed"})
+        assert ws._parse_message(raw) is None
+
+    def test_failed_subscribe_response_returns_none(self) -> None:
+        """Failed subscribe responses SHALL return None (not raise)."""
+        ws = DecibelWsSubscription(TESTNET_CONFIG, api_key="test")
+        raw = json.dumps({"success": False, "message": "Unknown topic"})
+        assert ws._parse_message(raw) is None
+
+    def test_unknown_message_without_topic_raises(self) -> None:
+        """Non-subscribe messages without 'topic' SHALL raise ValueError."""
+        ws = DecibelWsSubscription(TESTNET_CONFIG, api_key="test")
+        raw = json.dumps({"some_random_key": 42})
         with pytest.raises(ValueError, match="missing topic field"):
             ws._parse_message(raw)
 
