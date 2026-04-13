@@ -5,7 +5,7 @@ from aptos_sdk.account import Account
 from aptos_sdk.ed25519 import PrivateKey
 
 from decibel import (
-    NETNA_CONFIG,
+    TESTNET_CONFIG,
     BaseSDKOptions,
     DecibelWriteDex,
     GasPriceManager,
@@ -19,10 +19,10 @@ async def main() -> None:
     private_key = PrivateKey.from_hex(os.environ["PRIVATE_KEY"])
     account = Account.load_key(private_key.hex())
 
-    gas = GasPriceManager(NETNA_CONFIG)
+    gas = GasPriceManager(TESTNET_CONFIG)
     await gas.initialize()
 
-    read = DecibelReadDex(NETNA_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
+    read = DecibelReadDex(TESTNET_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
     markets = await read.markets.get_all()
     btc_market = next((m for m in markets if m.market_name == "BTC/USD"), None)
 
@@ -42,7 +42,7 @@ async def main() -> None:
     sl_size = amount_to_chain_units(0.001, btc_market.sz_decimals)
 
     write = DecibelWriteDex(
-        NETNA_CONFIG,
+        TESTNET_CONFIG,
         account,
         opts=BaseSDKOptions(
             node_api_key=os.environ.get("APTOS_NODE_API_KEY"),
@@ -53,7 +53,7 @@ async def main() -> None:
         ),
     )
 
-    market_addr = get_market_addr("BTC/USD", NETNA_CONFIG.deployment.perp_engine_global)
+    market_addr = get_market_addr("BTC/USD", TESTNET_CONFIG.deployment.perp_engine_global)
 
     tx_result = await write.place_tp_sl_order_for_position(
         market_addr=market_addr,

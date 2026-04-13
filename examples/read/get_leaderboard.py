@@ -1,12 +1,12 @@
 import asyncio
 import os
 
-from decibel import NETNA_CONFIG
+from decibel import TESTNET_CONFIG
 from decibel.read import DecibelReadDex
 
 
 async def main() -> None:
-    read = DecibelReadDex(NETNA_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
+    read = DecibelReadDex(TESTNET_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
 
     response = await read.leaderboard.get_leaderboard(limit=10, sort_key="realized_pnl")
 
