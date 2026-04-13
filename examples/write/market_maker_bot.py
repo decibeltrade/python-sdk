@@ -9,10 +9,10 @@ from aptos_sdk.account import Account
 from aptos_sdk.ed25519 import PrivateKey
 
 from decibel import (
+    NAMED_CONFIGS,
     BaseSDKOptions,
     DecibelWriteDex,
     GasPriceManager,
-    NAMED_CONFIGS,
     PlaceOrderSuccess,
     TimeInForce,
     amount_to_chain_units,
@@ -237,12 +237,12 @@ async def _run_cycle(
     print(
         f"\n[cycle {cycle}] mid={mid if mid is not None else 'N/A'} "
         f"inventory={inventory:+.6f} "
-        f"margin={margin_usage*100:.2f}% open_orders={len(open_order_ids)}"
+        f"margin={margin_usage * 100:.2f}% open_orders={len(open_order_ids)}"
     )
 
     if margin_usage > settings.max_margin_usage:
         print(
-            f"  paused: margin {margin_usage*100:.2f}% > {settings.max_margin_usage*100:.2f}%"
+            f"  paused: margin {margin_usage * 100:.2f}% > {settings.max_margin_usage * 100:.2f}%"
         )
         return
     if mid is None:

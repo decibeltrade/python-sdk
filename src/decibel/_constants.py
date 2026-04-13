@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from aptos_sdk.account_address import AccountAddress
 
@@ -32,13 +32,13 @@ DEFAULT_TXN_CONFIRM_TIMEOUT = 30.0
 DEFAULT_TXN_SUBMIT_TIMEOUT = 10.0
 
 
-class Network(str, Enum):
+class Network(StrEnum):
     MAINNET = "mainnet"
     TESTNET = "testnet"
     CUSTOM = "custom"
 
 
-class CompatVersion(str, Enum):
+class CompatVersion(StrEnum):
     V0_4 = "v0.4"  # decibel-testnet-release-v0.4 - and final version.
 
 
