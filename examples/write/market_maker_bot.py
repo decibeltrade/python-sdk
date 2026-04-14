@@ -284,9 +284,25 @@ async def _run_cycle(
         print(
             f"  paused: margin {margin_usage * 100:.2f}% > {settings.max_margin_usage * 100:.2f}%"
         )
+        if (settings.dry_run or write is not None) and open_order_ids:
+            await _cancel_market_orders(
+                write,
+                market_name=market.market_name,
+                order_ids=open_order_ids,
+                subaccount_addr=subaccount_addr,
+                dry_run=settings.dry_run,
+            )
         return
     if mid is None:
         print("  paused: no mid price available")
+        if (settings.dry_run or write is not None) and open_order_ids:
+            await _cancel_market_orders(
+                write,
+                market_name=market.market_name,
+                order_ids=open_order_ids,
+                subaccount_addr=subaccount_addr,
+                dry_run=settings.dry_run,
+            )
         return
 
     decision = _compute_quotes(
