@@ -235,8 +235,7 @@ class TestUpdateVaultRedemptionSlippage:
 
         payload: InputEntryFunctionData = admin_dex._send_tx.call_args.args[0]
         assert (
-            payload.function
-            == f"{TEST_PACKAGE}::vault_admin_api"
+            payload.function == f"{TEST_PACKAGE}::vault_admin_api"
             "::update_vault_use_global_redemption_slippage_adjustment"
         )
         assert payload.function_arguments == [TEST_VAULT_ADDR, True]
@@ -472,8 +471,7 @@ class TestRegisterMarketWithCompositeChainlink:
 
         payload: InputEntryFunctionData = admin_dex._send_tx.call_args.args[0]
         assert (
-            payload.function
-            == f"{TEST_PACKAGE}::admin_apis"
+            payload.function == f"{TEST_PACKAGE}::admin_apis"
             "::register_market_with_composite_oracle_primary_chainlink"
         )
         args = payload.function_arguments
@@ -759,8 +757,7 @@ class TestDecibelAdminDexSyncUpdateVaultRedemptionSlippage:
 
         payload: InputEntryFunctionData = admin_dex_sync._send_tx.call_args.args[0]
         assert (
-            payload.function
-            == f"{TEST_PACKAGE}::vault_admin_api"
+            payload.function == f"{TEST_PACKAGE}::vault_admin_api"
             "::update_vault_use_global_redemption_slippage_adjustment"
         )
         assert payload.function_arguments == [TEST_VAULT_ADDR, True]
@@ -943,8 +940,7 @@ class TestDecibelAdminDexSyncRegisterMarketCompositeChainlink:
 
         payload: InputEntryFunctionData = admin_dex_sync._send_tx.call_args.args[0]
         assert (
-            payload.function
-            == f"{TEST_PACKAGE}::admin_apis"
+            payload.function == f"{TEST_PACKAGE}::admin_apis"
             "::register_market_with_composite_oracle_primary_chainlink"
         )
         assert payload.function_arguments[11] == 8  # rescale_decimals

@@ -306,7 +306,7 @@ class BaseSDK:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
         headers = self._build_node_headers()
 
-        response = await self._http_client.get(url, headers=headers)
+        response = await self._http_client.get(url, headers=headers, timeout=5.0)
 
         if not response.is_success:
             raise ValueError(f"Failed to fetch gas price: {response.status_code} - {response.text}")
@@ -690,11 +690,9 @@ class BaseSDKSync:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
         headers = self._build_node_headers()
 
-        response = self._http_client.get(url, headers=headers)
+        response = self._http_client.get(url, headers=headers, timeout=5.0)
         if not response.is_success:
-            raise ValueError(
-                f"Failed to fetch gas price: {response.status_code} - {response.text}"
-            )
+            raise ValueError(f"Failed to fetch gas price: {response.status_code} - {response.text}")
         data = cast("dict[str, Any]", response.json())
         return int(data.get("gas_estimate", DEFAULT_GAS_ESTIMATE))
 

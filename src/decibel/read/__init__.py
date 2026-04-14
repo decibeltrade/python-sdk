@@ -200,6 +200,7 @@ class DecibelReadDex:
         self.trading_points = TradingPointsReader(deps)
 
     async def close(self) -> None:
+        await self.ws.close()
         await self._http_client.aclose()
 
     async def __aenter__(self) -> DecibelReadDex:
