@@ -116,6 +116,36 @@ def test_place_quote_dry_run_uses_price_x_size(capsys: pytest.CaptureFixture[str
     assert "would place bid: 100.5 x 0.002" in out
 
 
+def test_sync_state_uses_mid_px_without_falsy_fallback() -> None:
+    mm = _load_market_maker_module()
+    market = _fake_market()
+
+    class _FakeAccountOverview:
+        async def get_by_addr(self, sub_addr):
+            return SimpleNamespace(cross_margin_ratio=0.1)
+
+    class _FakeUserPositions:
+        async def get_by_addr(self, sub_addr, limit):
+            return [SimpleNamespace(market=market.market_addr, size=0.0)]
+
+    class _FakeUserOpenOrders:
+        async def get_by_addr(self, sub_addr, limit):
+            return SimpleNamespace(items=[])
+
+    class _FakeMarketPrices:
+        async def get_all(self):
+            return [SimpleNamespace(market=market.market_addr, mid_px=0.0, mark_px=12345.0)]
+
+    class _FakeRead:
+        account_overview = _FakeAccountOverview()
+        user_positions = _FakeUserPositions()
+        user_open_orders = _FakeUserOpenOrders()
+        market_prices = _FakeMarketPrices()
+
+    mid, *_ = asyncio.run(mm._sync_state(_FakeRead(), market, "0xsub"))
+    assert mid == 0.0
+
+
 def test_main_returns_nonzero_for_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
     mm = _load_market_maker_module()
     market = _fake_market()

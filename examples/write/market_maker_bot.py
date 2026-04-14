@@ -171,7 +171,7 @@ async def _sync_state(
     mid: float | None = None
     for price in prices:
         if price.market == market.market_addr:
-            mid = price.mid_px or price.mark_px
+            mid = price.mid_px
             break
 
     if mid is None:
