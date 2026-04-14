@@ -60,7 +60,9 @@ class DecibelWriteDex(BaseSDK):
         opts: BaseSDKOptions | None = None,
     ) -> None:
         super().__init__(config, account, opts)
-        self._order_status_client = OrderStatusClient(config)
+        self._order_status_client = OrderStatusClient(
+            config, http_client=self._http_client
+        )
 
     @property
     def order_status_client(self) -> OrderStatusClient:
@@ -1097,7 +1099,9 @@ class DecibelWriteDexSync(BaseSDKSync):
         opts: BaseSDKOptionsSync | None = None,
     ) -> None:
         super().__init__(config, account, opts)
-        self._order_status_client = OrderStatusClient(config)
+        self._order_status_client = OrderStatusClient(
+            config, http_client_sync=self._http_client
+        )
 
     @property
     def order_status_client(self) -> OrderStatusClient:

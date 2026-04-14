@@ -38,8 +38,16 @@ class OrderStatus(BaseModel):
 
 
 class OrderStatusClient:
-    def __init__(self, config: DecibelConfig) -> None:
+    def __init__(
+        self,
+        config: DecibelConfig,
+        *,
+        http_client: httpx.AsyncClient | None = None,
+        http_client_sync: httpx.Client | None = None,
+    ) -> None:
         self._config = config
+        self._http_client = http_client
+        self._http_client_sync = http_client_sync
 
     async def get_order_status(
         self,
@@ -56,12 +64,14 @@ class OrderStatusClient:
             "account": user_address,
         }
 
+        effective_client = client or self._http_client
+
         try:
-            if client is not None:
-                response = await client.get(url, params=params)
+            if effective_client is not None:
+                response = await effective_client.get(url, params=params, timeout=5.0)
             else:
                 async with httpx.AsyncClient() as temp_client:
-                    response = await temp_client.get(url, params=params)
+                    response = await temp_client.get(url, params=params, timeout=5.0)
 
             if response.status_code == 404:
                 return None
@@ -89,12 +99,14 @@ class OrderStatusClient:
             "account": user_address,
         }
 
+        effective_client = client or self._http_client_sync
+
         try:
-            if client is not None:
-                response = client.get(url, params=params)
+            if effective_client is not None:
+                response = effective_client.get(url, params=params, timeout=5.0)
             else:
                 with httpx.Client() as temp_client:
-                    response = temp_client.get(url, params=params)
+                    response = temp_client.get(url, params=params, timeout=5.0)
 
             if response.status_code == 404:
                 return None
