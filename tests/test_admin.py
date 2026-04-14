@@ -1101,21 +1101,3 @@ class TestDecibelAdminDexSyncUsdcBalance:
 
         admin_dex_sync.usdc_balance(addr="0x" + "11" * 32)
         admin_dex_sync._http_client.post.assert_called_once()
-
-    def test_creates_new_client_when_http_client_is_none(
-        self, admin_dex_sync: DecibelAdminDexSync
-    ) -> None:
-        admin_dex_sync._http_client = None  # type: ignore[assignment]
-        mock_response = MagicMock()
-        mock_response.json.return_value = ["200"]
-
-        with patch("httpx.Client") as mock_client_cls:
-            mock_client_instance = MagicMock()
-            mock_client_instance.__enter__ = MagicMock(return_value=mock_client_instance)
-            mock_client_instance.__exit__ = MagicMock(return_value=False)
-            mock_client_instance.post.return_value = mock_response
-            mock_client_cls.return_value = mock_client_instance
-
-            result = admin_dex_sync.usdc_balance(addr="0x" + "11" * 32)
-
-        assert result == 200

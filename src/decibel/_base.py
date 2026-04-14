@@ -762,17 +762,25 @@ class BaseSDKSync:
 
         poll_index = 0
         while True:
-            response = self._http_client.get(url, headers=headers, timeout=5.0)
-            if response.is_success:
-                data = cast("dict[str, Any]", response.json())
-                tx_type = data.get("type")
-                if tx_type == "pending_transaction":
-                    pass
-                elif data.get("success") is True:
-                    return data
-                elif data.get("success") is False:
-                    vm_status = data.get("vm_status", "Unknown error")
-                    raise TxnConfirmError(tx_hash, f"failed: {vm_status}")
+            try:
+                response = self._http_client.get(url, headers=headers, timeout=5.0)
+            except httpx.ConnectTimeout:
+                pass
+            except httpx.ReadTimeout:
+                pass
+            except httpx.ConnectError:
+                pass
+            else:
+                if response.is_success:
+                    data = cast("dict[str, Any]", response.json())
+                    tx_type = data.get("type")
+                    if tx_type == "pending_transaction":
+                        pass
+                    elif data.get("success") is True:
+                        return data
+                    elif data.get("success") is False:
+                        vm_status = data.get("vm_status", "Unknown error")
+                        raise TxnConfirmError(tx_hash, f"failed: {vm_status}")
             if time.time() - start_time > txn_confirm_timeout:
                 raise TxnConfirmError(tx_hash, f"did not confirm within {txn_confirm_timeout}s")
             delay = _poll_delay(poll_index)
