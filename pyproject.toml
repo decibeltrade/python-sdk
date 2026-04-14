@@ -59,6 +59,9 @@ select = [
     "TC",   # flake8-type-checking
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["SIM117"]  # Nested with statements are idiomatic in test mocking
+
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["pydantic.Field"]
 
