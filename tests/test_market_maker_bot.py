@@ -103,6 +103,33 @@ def test_compute_quotes_spread_too_tight_raises() -> None:
         )
 
 
+@pytest.mark.parametrize("spread", [float("nan"), float("inf")])
+def test_compute_quotes_non_finite_spread_raises(spread: float) -> None:
+    mm = _load_market_maker_module()
+    market = _fake_market()
+    settings = mm.MMSettings(spread=spread)
+    with pytest.raises(ValueError, match="spread must be a finite value > 0"):
+        mm._compute_quotes(
+            mid=100000.0,
+            inventory=0.0,
+            market=market,
+            settings=settings,
+        )
+
+
+def test_compute_quotes_extreme_skew_raises() -> None:
+    mm = _load_market_maker_module()
+    market = _fake_market()
+    settings = mm.MMSettings(skew_per_unit=2.0, max_inventory=10.0)
+    with pytest.raises(ValueError, match="adjust --skew-per-unit or --max-inventory"):
+        mm._compute_quotes(
+            mid=100000.0,
+            inventory=1.0,
+            market=market,
+            settings=settings,
+        )
+
+
 def test_parse_args_accepts_named_config_network_key(monkeypatch: pytest.MonkeyPatch) -> None:
     mm = _load_market_maker_module()
     network_key = "local" if "local" in mm.NAMED_CONFIGS else next(iter(mm.NAMED_CONFIGS))

@@ -87,6 +87,9 @@ def _compute_quotes(
     if mid <= 0:
         return QuoteDecision(status=QuoteStatus.PAUSE_NO_PRICE)
 
+    if not math.isfinite(settings.spread) or settings.spread <= 0:
+        raise ValueError("spread must be a finite value > 0; adjust --spread")
+
     tick_human = tick_size / (10**market.px_decimals)
     min_spread = tick_human / mid
     if settings.spread < min_spread:
@@ -115,6 +118,11 @@ def _compute_quotes(
 
     raw_bid = mid * (1.0 - half_spread - skew)
     raw_ask = mid * (1.0 + half_spread - skew)
+    if not math.isfinite(raw_bid) or not math.isfinite(raw_ask) or raw_bid <= 0 or raw_ask <= 0:
+        raise ValueError(
+            "computed quote prices are non-positive/invalid; adjust --skew-per-unit "
+            "or --max-inventory",
+        )
 
     bid = round_to_tick_size(
         raw_bid,
@@ -135,6 +143,11 @@ def _compute_quotes(
             tick_size=tick_size,
             px_decimals=market.px_decimals,
             round_up=True,
+        )
+    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0 or ask <= 0:
+        raise ValueError(
+            "rounded quote prices are non-positive/invalid; adjust --skew-per-unit "
+            "or --max-inventory",
         )
 
     return QuoteDecision(
