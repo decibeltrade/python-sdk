@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import os
 from dataclasses import dataclass
+from enum import StrEnum
 
 from aptos_sdk.account import Account
 from aptos_sdk.ed25519 import PrivateKey
@@ -37,6 +38,21 @@ class MMSettings:
     dry_run: bool = False
 
 
+class QuoteStatus(StrEnum):
+    OK = "ok"
+    PAUSE_NO_PRICE = "pause_no_price"
+    PAUSE_INVENTORY_LIMIT = "pause_inventory_limit"
+    PAUSE_SIZE_INVALID = "pause_size_invalid"
+
+
+@dataclass(frozen=True)
+class QuoteDecision:
+    status: QuoteStatus
+    bid: float | None = None
+    ask: float | None = None
+    size: float | None = None
+
+
 def _env_bool(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)
     if raw is None:
@@ -62,13 +78,13 @@ def _compute_quotes(
     inventory: float,
     market: PerpMarket,
     settings: MMSettings,
-) -> tuple[float, float, float] | None:
+) -> QuoteDecision:
     tick_size = int(market.tick_size)
     lot_size = int(market.lot_size)
     min_size = int(market.min_size)
 
     if mid <= 0:
-        return None
+        return QuoteDecision(status=QuoteStatus.PAUSE_NO_PRICE)
 
     tick_human = tick_size / (10**market.px_decimals)
     min_spread = tick_human / mid
@@ -79,7 +95,7 @@ def _compute_quotes(
         )
 
     if abs(inventory) >= settings.max_inventory:
-        return None
+        return QuoteDecision(status=QuoteStatus.PAUSE_INVENTORY_LIMIT)
 
     valid_size = round_to_valid_order_size(
         settings.order_size,
@@ -88,7 +104,7 @@ def _compute_quotes(
         min_size=min_size,
     )
     if valid_size <= 0:
-        return None
+        return QuoteDecision(status=QuoteStatus.PAUSE_SIZE_INVALID)
 
     half_spread = settings.spread / 2.0
     skew = inventory * settings.skew_per_unit
@@ -117,7 +133,12 @@ def _compute_quotes(
             round_up=True,
         )
 
-    return bid, ask, valid_size
+    return QuoteDecision(
+        status=QuoteStatus.OK,
+        bid=bid,
+        ask=ask,
+        size=valid_size,
+    )
 
 
 async def _sync_state(
@@ -165,7 +186,7 @@ async def _sync_state(
 
 
 async def _cancel_market_orders(
-    write: DecibelWriteDex,
+    write: DecibelWriteDex | None,
     market_name: str,
     order_ids: list[str],
     subaccount_addr: str,
@@ -178,6 +199,8 @@ async def _cancel_market_orders(
             print(f"  [dry-run] would cancel {order_id}")
             cancelled += 1
             continue
+        if write is None:
+            raise RuntimeError("write client is required when not in dry-run mode")
         try:
             await write.cancel_order(
                 order_id=order_id,
@@ -249,18 +272,18 @@ async def _run_cycle(
         print("  paused: no mid price available")
         return
 
-    quotes = _compute_quotes(
+    decision = _compute_quotes(
         mid=mid,
         inventory=inventory,
         market=market,
         settings=settings,
     )
-    if quotes is None:
+    if decision.status is QuoteStatus.PAUSE_INVENTORY_LIMIT:
         print(
             f"  paused: inventory {inventory:+.6f} at/above max {settings.max_inventory}; "
             "canceling resting orders only"
         )
-        if write is not None and open_order_ids:
+        if (settings.dry_run or write is not None) and open_order_ids:
             await _cancel_market_orders(
                 write,
                 market_name=market.market_name,
@@ -269,12 +292,20 @@ async def _run_cycle(
                 dry_run=settings.dry_run,
             )
         return
+    if decision.status is QuoteStatus.PAUSE_SIZE_INVALID:
+        raise ValueError("order size rounds to zero; adjust --order-size or market lot/min size")
+    if decision.status is QuoteStatus.PAUSE_NO_PRICE:
+        print("  paused: invalid mid price")
+        return
 
-    bid, ask, size = quotes
+    if decision.bid is None or decision.ask is None or decision.size is None:
+        raise RuntimeError(f"unexpected quote decision: {decision.status}")
+
+    bid, ask, size = decision.bid, decision.ask, decision.size
     print(f"  quotes: bid={bid} ask={ask} size={size}")
 
     failed = 0
-    if write is not None and open_order_ids:
+    if (settings.dry_run or write is not None) and open_order_ids:
         cancelled, failed = await _cancel_market_orders(
             write,
             market_name=market.market_name,
@@ -468,6 +499,9 @@ async def main() -> int:
                     subaccount_addr=subaccount_addr,
                     settings=settings,
                 )
+            except ValueError as exc:
+                print(f"fatal config error: {exc}")
+                return 2
             except Exception as exc:
                 print(f"  [cycle {cycle} error] {exc}")
 
