@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import math
 import os
 from dataclasses import dataclass
 from enum import StrEnum
@@ -97,6 +98,9 @@ def _compute_quotes(
     if abs(inventory) >= settings.max_inventory:
         return QuoteDecision(status=QuoteStatus.PAUSE_INVENTORY_LIMIT)
 
+    if not math.isfinite(settings.order_size) or settings.order_size <= 0:
+        return QuoteDecision(status=QuoteStatus.PAUSE_SIZE_INVALID)
+
     valid_size = round_to_valid_order_size(
         settings.order_size,
         lot_size=lot_size,
@@ -149,7 +153,7 @@ async def _sync_state(
     overview_task = read.account_overview.get_by_addr(sub_addr=subaccount_addr)
     positions_task = read.user_positions.get_by_addr(sub_addr=subaccount_addr, limit=100)
     orders_task = read.user_open_orders.get_by_addr(sub_addr=subaccount_addr, limit=200)
-    prices_task = read.market_prices.get_all()
+    prices_task = read.market_prices.get_by_name(market.market_name)
 
     overview, positions, open_orders, prices = await asyncio.gather(
         overview_task,

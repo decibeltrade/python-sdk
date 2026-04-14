@@ -64,6 +64,19 @@ def test_compute_quotes_size_invalid_status() -> None:
     assert decision.status is mm.QuoteStatus.PAUSE_SIZE_INVALID
 
 
+def test_compute_quotes_negative_size_invalid_status() -> None:
+    mm = _load_market_maker_module()
+    market = _fake_market()
+    settings = mm.MMSettings(order_size=-0.001)
+    decision = mm._compute_quotes(
+        mid=100000.0,
+        inventory=0.0,
+        market=market,
+        settings=settings,
+    )
+    assert decision.status is mm.QuoteStatus.PAUSE_SIZE_INVALID
+
+
 def test_compute_quotes_inventory_limit_status() -> None:
     mm = _load_market_maker_module()
     market = _fake_market()
@@ -133,7 +146,8 @@ def test_sync_state_uses_mid_px_without_falsy_fallback() -> None:
             return SimpleNamespace(items=[])
 
     class _FakeMarketPrices:
-        async def get_all(self):
+        async def get_by_name(self, market_name):
+            assert market_name == market.market_name
             return [SimpleNamespace(market=market.market_addr, mid_px=0.0, mark_px=12345.0)]
 
     class _FakeRead:
