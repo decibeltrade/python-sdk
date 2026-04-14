@@ -326,9 +326,20 @@ async def _run_cycle(
             )
         return
     if decision.status is QuoteStatus.PAUSE_SIZE_INVALID:
-        raise ValueError("order size rounds to zero; adjust --order-size or market lot/min size")
+        raise ValueError(
+            "invalid order size: must be finite and > 0, and must not round to 0 after "
+            "market lot/min-size constraints; adjust --order-size or market lot/min size"
+        )
     if decision.status is QuoteStatus.PAUSE_NO_PRICE:
         print("  paused: invalid mid price")
+        if (settings.dry_run or write is not None) and open_order_ids:
+            await _cancel_market_orders(
+                write,
+                market_name=market.market_name,
+                order_ids=open_order_ids,
+                subaccount_addr=subaccount_addr,
+                dry_run=settings.dry_run,
+            )
         return
 
     if decision.bid is None or decision.ask is None or decision.size is None:

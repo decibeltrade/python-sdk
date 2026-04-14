@@ -281,3 +281,47 @@ def test_run_cycle_pause_guards_cancel_resting_orders(
         )
     )
     assert calls == [["oid-1", "oid-2"]]
+
+
+def test_run_cycle_invalid_mid_price_cancels_resting_orders(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mm = _load_market_maker_module()
+    market = _fake_market()
+    settings = mm.MMSettings(dry_run=True, max_margin_usage=0.5)
+
+    async def _fake_sync_state(read, market_arg, subaccount_addr):
+        assert market_arg is market
+        assert subaccount_addr == "0xsub"
+        return 100000.0, 0.0, 0.1, ["oid-1", "oid-2"]
+
+    def _fake_compute_quotes(*, mid, inventory, market, settings):
+        return mm.QuoteDecision(status=mm.QuoteStatus.PAUSE_NO_PRICE)
+
+    calls: list[list[str]] = []
+
+    async def _fake_cancel_market_orders(
+        write, market_name, order_ids, subaccount_addr, dry_run
+    ) -> tuple[int, int]:
+        assert write is None
+        assert market_name == "BTC/USD"
+        assert subaccount_addr == "0xsub"
+        assert dry_run is True
+        calls.append(order_ids)
+        return len(order_ids), 0
+
+    monkeypatch.setattr(mm, "_sync_state", _fake_sync_state)
+    monkeypatch.setattr(mm, "_compute_quotes", _fake_compute_quotes)
+    monkeypatch.setattr(mm, "_cancel_market_orders", _fake_cancel_market_orders)
+
+    asyncio.run(
+        mm._run_cycle(
+            1,
+            read=SimpleNamespace(),
+            write=None,
+            market=market,
+            subaccount_addr="0xsub",
+            settings=settings,
+        )
+    )
+    assert calls == [["oid-1", "oid-2"]]
