@@ -90,6 +90,32 @@ def test_compute_quotes_spread_too_tight_raises() -> None:
         )
 
 
+def test_parse_args_accepts_named_config_network_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    mm = _load_market_maker_module()
+    network_key = "local" if "local" in mm.NAMED_CONFIGS else next(iter(mm.NAMED_CONFIGS))
+    monkeypatch.setattr(sys, "argv", ["market_maker_bot.py", "--network", network_key])
+    args = mm._parse_args()
+    assert args.network == network_key
+
+
+def test_place_quote_dry_run_uses_price_x_size(capsys: pytest.CaptureFixture[str]) -> None:
+    mm = _load_market_maker_module()
+    market = _fake_market()
+    asyncio.run(
+        mm._place_quote(
+            write=None,
+            market=market,
+            subaccount_addr="0xsub",
+            is_buy=True,
+            price=100.5,
+            size=0.002,
+            dry_run=True,
+        )
+    )
+    out = capsys.readouterr().out
+    assert "would place bid: 100.5 x 0.002" in out
+
+
 def test_main_returns_nonzero_for_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
     mm = _load_market_maker_module()
     market = _fake_market()

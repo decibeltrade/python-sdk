@@ -226,7 +226,7 @@ async def _place_quote(
 ) -> None:
     side = "bid" if is_buy else "ask"
     if dry_run:
-        print(f"  [dry-run] would place {side}: {size} @ {price}")
+        print(f"  [dry-run] would place {side}: {price} x {size}")
         return
     if write is None:
         raise RuntimeError("write client is required in live mode")
@@ -354,8 +354,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--network",
         default=os.getenv("NETWORK", "testnet"),
-        choices=("testnet", "mainnet"),
-        help="Network profile from decibel.NAMED_CONFIGS",
+        choices=tuple(NAMED_CONFIGS),
+        help="Network profile key from decibel.NAMED_CONFIGS",
     )
     parser.add_argument(
         "--market",
