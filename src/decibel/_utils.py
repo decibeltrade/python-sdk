@@ -35,6 +35,7 @@ __all__ = [
     "round_to_valid_order_size",
     "amount_to_chain_units",
     "chain_units_to_amount",
+    "bps_to_chain_units",
     "extract_vault_address_from_create_tx",
     "generate_random_replay_protection_nonce",
 ]
@@ -383,6 +384,21 @@ def round_to_valid_order_size(
 def amount_to_chain_units(amount: float, decimals: int = 6) -> int:
     """Convert a decimal amount to chain units (e.g., 5.67 USDC -> 5670000)."""
     return round(amount * (10**decimals))
+
+
+def bps_to_chain_units(bps: int | float) -> int:
+    """Convert basis points (bps) to chain units for builder fees.
+
+    The contract uses FEE_PRECISION = 10000 to represent 1%.
+    Since a basis point is 1/100th of a percent, multiply by 100.
+
+    Args:
+        bps: Basis point value (e.g. 10 for 0.1%)
+
+    Returns:
+        Chain units as integer (e.g. 10 bps -> 1000)
+    """
+    return round(bps * 100)
 
 
 def chain_units_to_amount(chain_units: int, decimals: int = 6) -> float:

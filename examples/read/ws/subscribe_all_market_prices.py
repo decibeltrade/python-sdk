@@ -2,12 +2,12 @@ import asyncio
 import os
 from typing import Any
 
-from decibel import NETNA_CONFIG
+from decibel import TESTNET_CONFIG
 from decibel.read import DecibelReadDex
 
 
 async def main() -> None:
-    read = DecibelReadDex(NETNA_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
+    read = DecibelReadDex(TESTNET_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
 
     def on_data(msg: Any) -> None:
         print(f"Received {len(msg.prices)} market prices:\n")

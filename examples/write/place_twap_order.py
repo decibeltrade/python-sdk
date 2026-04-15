@@ -5,7 +5,7 @@ from aptos_sdk.account import Account
 from aptos_sdk.ed25519 import PrivateKey
 
 from decibel import (
-    NETNA_CONFIG,
+    TESTNET_CONFIG,
     BaseSDKOptions,
     DecibelWriteDex,
     GasPriceManager,
@@ -21,14 +21,14 @@ async def main() -> None:
     account = Account.load_key(private_key.hex())
 
     gas = GasPriceManager(
-        NETNA_CONFIG,
+        TESTNET_CONFIG,
         opts=GasPriceManagerOptions(
             node_api_key=os.environ.get("APTOS_NODE_API_KEY"),
         ),
     )
     await gas.initialize()
 
-    read = DecibelReadDex(NETNA_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
+    read = DecibelReadDex(TESTNET_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
     markets = await read.markets.get_all()
     ETH_market = next((m for m in markets if m.market_name == "ETH/USD"), None)
 
@@ -40,7 +40,7 @@ async def main() -> None:
     size = amount_to_chain_units(2000, ETH_market.sz_decimals)
 
     write = DecibelWriteDex(
-        NETNA_CONFIG,
+        TESTNET_CONFIG,
         account,
         opts=BaseSDKOptions(
             node_api_key=os.environ.get("APTOS_NODE_API_KEY"),

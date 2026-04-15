@@ -15,7 +15,6 @@ from aptos_sdk.async_client import RestClient
 from decibel._constants import (
     MAINNET_CONFIG,
     NAMED_CONFIGS,
-    NETNA_CONFIG,
     TESTNET_CONFIG,
     DecibelConfig,
 )
@@ -45,9 +44,7 @@ SDK_MODULES = [
 
 
 def get_abi_filename(config: DecibelConfig) -> str:
-    if config == NETNA_CONFIG:
-        return "netna.json"
-    elif config == TESTNET_CONFIG:
+    if config == TESTNET_CONFIG:
         return "testnet.json"
     elif config == MAINNET_CONFIG:
         return "mainnet.json"

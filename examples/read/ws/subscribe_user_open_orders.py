@@ -2,14 +2,14 @@ import asyncio
 import os
 from typing import Any
 
-from decibel import NETNA_CONFIG
+from decibel import TESTNET_CONFIG
 from decibel.read import DecibelReadDex
 
 SUB_ADDR = "0x123..."
 
 
 async def main() -> None:
-    read = DecibelReadDex(NETNA_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
+    read = DecibelReadDex(TESTNET_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
 
     def on_data(msg: Any) -> None:
         if not msg.orders:

@@ -46,11 +46,11 @@ export APTOS_NODE_API_KEY="your_aptos_node_api_key"
 
 ```python
 import asyncio
-from decibel import NETNA_CONFIG
+from decibel import TESTNET_CONFIG
 from decibel.read import DecibelReadDex
 
 async def main():
-    read = DecibelReadDex(NETNA_CONFIG)
+    read = DecibelReadDex(TESTNET_CONFIG)
 
     # Get all markets
     markets = await read.markets.get_all()
@@ -73,7 +73,7 @@ import os
 from aptos_sdk.account import Account
 from aptos_sdk.ed25519 import PrivateKey
 from decibel import (
-    NETNA_CONFIG,
+    TESTNET_CONFIG,
     BaseSDKOptions,
     DecibelWriteDex,
     GasPriceManager,
@@ -87,15 +87,15 @@ async def main():
     private_key = PrivateKey.from_hex(os.environ["PRIVATE_KEY"])
     account = Account.load_key(private_key.hex())
 
-    gas = GasPriceManager(NETNA_CONFIG)
+    gas = GasPriceManager(TESTNET_CONFIG)
     await gas.initialize()
 
-    read = DecibelReadDex(NETNA_CONFIG)
+    read = DecibelReadDex(TESTNET_CONFIG)
     markets = await read.markets.get_all()
     btc = next(m for m in markets if m.market_name == "BTC/USD")
 
     write = DecibelWriteDex(
-        NETNA_CONFIG,
+        TESTNET_CONFIG,
         account,
         opts=BaseSDKOptions(gas_price_manager=gas),
     )
@@ -123,11 +123,11 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from decibel import NETNA_CONFIG
+from decibel import TESTNET_CONFIG
 from decibel.read import DecibelReadDex
 
 async def main():
-    read = DecibelReadDex(NETNA_CONFIG)
+    read = DecibelReadDex(TESTNET_CONFIG)
 
     def on_price(msg):
         price = msg.price
@@ -188,11 +188,10 @@ Use `python examples/write/market_maker_bot.py --help` to see all available opti
 ### Network Configs
 
 ```python
-from decibel import MAINNET_CONFIG, TESTNET_CONFIG, NETNA_CONFIG
+from decibel import MAINNET_CONFIG, TESTNET_CONFIG
 
 # MAINNET_CONFIG - Production network
 # TESTNET_CONFIG - Test network
-# NETNA_CONFIG   - Dev network
 ```
 
 ### Read Client

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from aptos_sdk.account_address import AccountAddress
 
@@ -14,7 +14,6 @@ __all__ = [
     "DEFAULT_TXN_CONFIRM_TIMEOUT",
     "DEFAULT_TXN_SUBMIT_TIMEOUT",
     "MAINNET_CONFIG",
-    "NETNA_CONFIG",
     "TESTNET_CONFIG",
     "LOCAL_CONFIG",
     "DOCKER_CONFIG",
@@ -33,13 +32,13 @@ DEFAULT_TXN_CONFIRM_TIMEOUT = 30.0
 DEFAULT_TXN_SUBMIT_TIMEOUT = 10.0
 
 
-class Network(str, Enum):
+class Network(StrEnum):
     MAINNET = "mainnet"
     TESTNET = "testnet"
     CUSTOM = "custom"
 
 
-class CompatVersion(str, Enum):
+class CompatVersion(StrEnum):
     V0_4 = "v0.4"  # decibel-testnet-release-v0.4 - and final version.
 
 
@@ -93,7 +92,6 @@ def _create_deployment(package: str) -> Deployment:
 
 _MAINNET_PACKAGE = "0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06"
 _MAINNET_USDC = "0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b"
-_NETNA_PACKAGE = "0xb8a5788314451ce4d2fbbad32e1bad88d4184b73943b7fe5166eab93cf1a5a95"
 _TESTNET_PACKAGE = "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f"
 _LOCAL_PACKAGE = "0xb8a5788314451ce4d2fbbad32e1bad88d4184b73943b7fe5166eab93cf1a5a95"
 _DOCKER_PACKAGE = "0xb8a5788314451ce4d2fbbad32e1bad88d4184b73943b7fe5166eab93cf1a5a95"
@@ -114,18 +112,6 @@ MAINNET_CONFIG = DecibelConfig(
     gas_station_api_key=None,
     deployment=MAINNET_DEPLOYMENT,
     chain_id=1,
-    compat_version=CompatVersion.V0_4,
-)
-
-NETNA_CONFIG = DecibelConfig(
-    network=Network.CUSTOM,
-    fullnode_url="https://api.netna.staging.aptoslabs.com/v1",
-    trading_http_url="https://api.netna.staging.aptoslabs.com/decibel",
-    trading_ws_url="wss://api.netna.staging.aptoslabs.com/decibel/ws",
-    gas_station_url="https://api.netna.staging.aptoslabs.com/gs/v1",
-    gas_station_api_key=None,
-    deployment=_create_deployment(_NETNA_PACKAGE),
-    chain_id=208,
     compat_version=CompatVersion.V0_4,
 )
 
@@ -168,7 +154,6 @@ DOCKER_CONFIG = DecibelConfig(
 
 NAMED_CONFIGS: dict[str, DecibelConfig] = {
     "mainnet": MAINNET_CONFIG,
-    "netna": NETNA_CONFIG,
     "testnet": TESTNET_CONFIG,
     "local": LOCAL_CONFIG,
     "docker": DOCKER_CONFIG,

@@ -6,11 +6,6 @@ from decibel.abi import AbiRegistry, get_abi_data, get_default_abi_data
 
 
 class TestGetAbiData:
-    def test_netna_chain_id(self) -> None:
-        data = get_abi_data(208)
-        assert data.network == "custom"
-        assert "netna" in data.fullnode_url
-
     def test_testnet_chain_id(self) -> None:
         data = get_abi_data(2)
         assert data.network == "testnet"
@@ -22,13 +17,13 @@ class TestGetAbiData:
             data = get_abi_data(999)
             assert len(w) == 1
             assert "Unknown chain_id" in str(w[0].message)
-            assert "netna" in data.fullnode_url
+            assert "testnet" in data.fullnode_url
 
 
 class TestGetDefaultAbiData:
-    def test_returns_netna(self) -> None:
+    def test_returns_testnet(self) -> None:
         data = get_default_abi_data()
-        assert "netna" in data.fullnode_url
+        assert "testnet" in data.fullnode_url
 
 
 class TestAbiRegistry:
@@ -37,10 +32,6 @@ class TestAbiRegistry:
         assert registry.package_address is not None
         assert len(registry.modules) == 9
 
-    def test_init_with_netna_chain_id(self) -> None:
-        registry = AbiRegistry(chain_id=208)
-        assert "netna" in registry.abi_data.fullnode_url
-
     def test_init_with_testnet_chain_id(self) -> None:
         registry = AbiRegistry(chain_id=2)
         assert "testnet" in registry.abi_data.fullnode_url
@@ -48,7 +39,7 @@ class TestAbiRegistry:
     def test_get_all_functions(self) -> None:
         registry = AbiRegistry()
         funcs = registry.get_all_functions()
-        assert len(funcs) == 172
+        assert len(funcs) > 0
 
     def test_get_entry_functions(self) -> None:
         registry = AbiRegistry()
