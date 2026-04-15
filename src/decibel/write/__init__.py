@@ -16,6 +16,7 @@ from decibel._order_types import (
 from decibel._subaccount_types import RenameSubaccount, RenameSubaccountArgs
 from decibel._transaction_builder import InputEntryFunctionData
 from decibel._utils import (
+    bps_to_chain_units,
     get_market_addr,
     get_primary_subaccount_addr,
     post_request,
@@ -270,6 +271,7 @@ class DecibelWriteDex(BaseSDK):
                 if sl_limit_price is not None and tick_size
                 else sl_limit_price
             )
+            final_builder_fee = bps_to_chain_units(builder_fee) if builder_fee is not None else None
 
             pkg = self._config.deployment.package
 
@@ -293,7 +295,7 @@ class DecibelWriteDex(BaseSDK):
                             final_sl_trigger,
                             final_sl_limit,
                             builder_addr,
-                            builder_fee,
+                            final_builder_fee,
                         ],
                     ),
                     account_override,
@@ -359,6 +361,7 @@ class DecibelWriteDex(BaseSDK):
     ) -> PlaceOrderResult:
         market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
         pkg = self._config.deployment.package
+        final_builder_fees = bps_to_chain_units(builder_fees) if builder_fees is not None else None
 
         async def _send(addr: str) -> dict[str, Any]:
             return await self._send_tx(
@@ -375,7 +378,7 @@ class DecibelWriteDex(BaseSDK):
                         twap_frequency_seconds,
                         twap_duration_seconds,
                         builder_address,
-                        builder_fees,
+                        final_builder_fees,
                     ],
                 ),
                 account_override,
@@ -1049,17 +1052,18 @@ class DecibelWriteDex(BaseSDK):
         self,
         *,
         builder_addr: str,
-        max_fee: int,
+        max_fee: int | float,
         subaccount_addr: str | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
+        final_max_fee = bps_to_chain_units(max_fee)
 
         async def _send(addr: str) -> dict[str, Any]:
             return await self._send_tx(
                 InputEntryFunctionData(
                     function=f"{pkg}::dex_accounts_entry::approve_max_builder_fee_for_subaccount",
                     type_arguments=[],
-                    function_arguments=[addr, builder_addr, max_fee],
+                    function_arguments=[addr, builder_addr, final_max_fee],
                 )
             )
 
@@ -1302,6 +1306,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                 if sl_limit_price is not None and tick_size
                 else sl_limit_price
             )
+            final_builder_fee = bps_to_chain_units(builder_fee) if builder_fee is not None else None
 
             pkg = self._config.deployment.package
 
@@ -1325,7 +1330,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                             final_sl_trigger,
                             final_sl_limit,
                             builder_addr,
-                            builder_fee,
+                            final_builder_fee,
                         ],
                     ),
                     account_override,
@@ -1391,6 +1396,7 @@ class DecibelWriteDexSync(BaseSDKSync):
     ) -> PlaceOrderResult:
         market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
         pkg = self._config.deployment.package
+        final_builder_fees = bps_to_chain_units(builder_fees) if builder_fees is not None else None
 
         def _send(addr: str) -> dict[str, Any]:
             return self._send_tx(
@@ -1407,7 +1413,7 @@ class DecibelWriteDexSync(BaseSDKSync):
                         twap_frequency_seconds,
                         twap_duration_seconds,
                         builder_address,
-                        builder_fees,
+                        final_builder_fees,
                     ],
                 ),
                 account_override,
@@ -2077,17 +2083,18 @@ class DecibelWriteDexSync(BaseSDKSync):
         self,
         *,
         builder_addr: str,
-        max_fee: int,
+        max_fee: int | float,
         subaccount_addr: str | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
+        final_max_fee = bps_to_chain_units(max_fee)
 
         def _send(addr: str) -> dict[str, Any]:
             return self._send_tx(
                 InputEntryFunctionData(
                     function=f"{pkg}::dex_accounts_entry::approve_max_builder_fee_for_subaccount",
                     type_arguments=[],
-                    function_arguments=[addr, builder_addr, max_fee],
+                    function_arguments=[addr, builder_addr, final_max_fee],
                 )
             )
 

@@ -151,7 +151,7 @@ class CancelTpSlOrderArgs(TypedDict):
 
 class ApproveBuilderFeeArgs(TypedDict):
     builder_addr: str
-    max_fee: int
+    max_fee: int | float
     subaccount_addr: NotRequired[str | None]
 
 
