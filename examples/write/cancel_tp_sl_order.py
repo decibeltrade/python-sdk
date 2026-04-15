@@ -5,7 +5,7 @@ from aptos_sdk.account import Account
 from aptos_sdk.ed25519 import PrivateKey
 
 from decibel import (
-    NETNA_CONFIG,
+    TESTNET_CONFIG,
     BaseSDKOptions,
     DecibelWriteDex,
     GasPriceManager,
@@ -17,11 +17,11 @@ async def main() -> None:
     private_key = PrivateKey.from_hex(os.environ["PRIVATE_KEY"])
     account = Account.load_key(private_key.hex())
 
-    gas = GasPriceManager(NETNA_CONFIG)
+    gas = GasPriceManager(TESTNET_CONFIG)
     await gas.initialize()
 
     write = DecibelWriteDex(
-        NETNA_CONFIG,
+        TESTNET_CONFIG,
         account,
         opts=BaseSDKOptions(
             node_api_key=os.environ.get("APTOS_NODE_API_KEY"),
@@ -32,7 +32,7 @@ async def main() -> None:
         ),
     )
 
-    market_addr = get_market_addr("BTC/USD", NETNA_CONFIG.deployment.perp_engine_global)
+    market_addr = get_market_addr("BTC/USD", TESTNET_CONFIG.deployment.perp_engine_global)
 
     order_id = 12345
     tx_result = await write.cancel_tp_sl_order_for_position(

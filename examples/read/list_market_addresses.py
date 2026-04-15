@@ -1,11 +1,11 @@
 import asyncio
 
-from decibel import NETNA_CONFIG
+from decibel import TESTNET_CONFIG
 from decibel.read import DecibelReadDex
 
 
 async def main() -> None:
-    read = DecibelReadDex(NETNA_CONFIG)
+    read = DecibelReadDex(TESTNET_CONFIG)
 
     addresses = await read.markets.list_market_addresses()
 

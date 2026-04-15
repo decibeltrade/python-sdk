@@ -2,12 +2,12 @@ import asyncio
 import os
 from datetime import UTC, datetime
 
-from decibel import NETNA_CONFIG
+from decibel import TESTNET_CONFIG
 from decibel.read import CandlestickInterval, DecibelReadDex
 
 
 async def main() -> None:
-    read = DecibelReadDex(NETNA_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
+    read = DecibelReadDex(TESTNET_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
 
     market_name = "BTC/USD"
     interval = CandlestickInterval.ONE_HOUR

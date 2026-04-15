@@ -17,7 +17,6 @@ __all__ = [
     "get_default_abi_data",
 ]
 
-CHAIN_ID_NETNA = 208
 CHAIN_ID_TESTNET = 2
 CHAIN_ID_MAINNET = 1
 
@@ -34,20 +33,18 @@ def _load_abi_json(filename: str) -> ABIData:
 def get_abi_data(chain_id: int | None) -> ABIData:
     if chain_id == CHAIN_ID_MAINNET:
         return _load_abi_json("mainnet.json")
-    elif chain_id == CHAIN_ID_NETNA:
-        return _load_abi_json("netna.json")
     elif chain_id == CHAIN_ID_TESTNET:
         return _load_abi_json("testnet.json")
     else:
         warnings.warn(
-            f"Unknown chain_id {chain_id}, falling back to NETNA ABIs",
+            f"Unknown chain_id {chain_id}, falling back to TESTNET ABIs",
             stacklevel=2,
         )
-        return _load_abi_json("netna.json")
+        return _load_abi_json("testnet.json")
 
 
 def get_default_abi_data() -> ABIData:
-    return _load_abi_json("netna.json")
+    return _load_abi_json("testnet.json")
 
 
 class AbiRegistry:

@@ -308,9 +308,6 @@ def _get_default_gas_station_url(config: DecibelConfig) -> str:
     if config.network == Network.TESTNET:
         return "https://api.testnet.aptoslabs.com/gs/v1"
 
-    if config.chain_id == 208:
-        return "https://api.netna.aptoslabs.com/gs/v1"
-
     if config.gas_station_url:
         return config.gas_station_url
 

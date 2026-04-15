@@ -1,14 +1,14 @@
 import asyncio
 import os
 
-from decibel import NETNA_CONFIG
+from decibel import TESTNET_CONFIG
 from decibel.read import DecibelReadDex
 
 OWNER_ADDR = "0x123..."
 
 
 async def main() -> None:
-    read = DecibelReadDex(NETNA_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
+    read = DecibelReadDex(TESTNET_CONFIG, api_key=os.environ.get("APTOS_NODE_API_KEY"))
 
     subaccounts = await read.user_subaccounts.get_by_addr(owner_addr=OWNER_ADDR)
 
