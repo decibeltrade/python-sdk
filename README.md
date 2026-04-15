@@ -149,6 +149,39 @@ See the [examples](examples) directory for complete working examples:
 - **[examples/read](examples/read)** - REST API queries (markets, prices, positions, orders)
 - **[examples/read/ws](examples/read/ws)** - WebSocket subscriptions (real-time streaming)
 - **[examples/write](examples/write)** - Trading operations (orders, deposits, withdrawals)
+  - **[examples/write/market_maker_bot.py](examples/write/market_maker_bot.py)** - Complete market maker bot implementation with inventory skew, margin management, and dry-run mode
+
+### Market Maker Bot
+
+The SDK includes a complete market maker bot example that demonstrates how to build a trading bot using Decibel. The bot:
+
+- Places bid/ask quotes around the mid-price with configurable spread
+- Manages inventory with skew adjustments to encourage mean-reversion
+- Monitors margin usage and pauses quoting when limits are exceeded
+- Supports both dry-run (simulation) and live trading modes
+- Includes configurable parameters: spread, order size, inventory limits, refresh interval, and more
+- Uses POST_ONLY orders for predictable fills
+
+To run the bot, set environment variables and execute:
+
+```bash
+# Dry-run mode (no transactions)
+export SUBACCOUNT_ADDRESS="0x..."
+export NETWORK="testnet"
+python examples/write/market_maker_bot.py --dry-run
+
+# Live mode (requires PRIVATE_KEY)
+export PRIVATE_KEY="0x..."
+python examples/write/market_maker_bot.py \
+  --market="BTC/USD" \
+  --spread=0.001 \
+  --order-size=0.001 \
+  --max-inventory=0.01 \
+  --max-margin-usage=0.5 \
+  --refresh-interval=20
+```
+
+Use `python examples/write/market_maker_bot.py --help` to see all available options.
 
 ## API Reference
 
