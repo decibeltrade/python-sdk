@@ -713,7 +713,7 @@ class TestPlaceTwapOrder:
                 twap_duration_seconds=3600,
                 client_order_id="my-order",
                 builder_address=builder_addr,
-                builder_fees=0.001,
+                builder_fees=10,
             )
 
         payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
@@ -729,7 +729,7 @@ class TestPlaceTwapOrder:
         assert args[6] == 60
         assert args[7] == 3600
         assert args[8] == builder_addr
-        assert args[9] == 0.001
+        assert args[9] == 1000  # bps_to_chain_units(10) = 10 * 100
 
 
 # ===========================================================================
@@ -1215,7 +1215,8 @@ class TestApproveMaxBuilderFee:
             payload.function
             == f"{TEST_PACKAGE}::dex_accounts_entry::approve_max_builder_fee_for_subaccount"
         )
-        assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, builder_addr, 1000]
+        # bps_to_chain_units(1000) = 1000 * 100 = 100000
+        assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, builder_addr, 100000]
 
 
 # ===========================================================================
@@ -1590,7 +1591,8 @@ class TestDecibelWriteDexSyncApproveRevokeBuilderFee:
             payload.function
             == f"{TEST_PACKAGE}::dex_accounts_entry::approve_max_builder_fee_for_subaccount"
         )
-        assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, builder_addr, 500]
+        # bps_to_chain_units(500) = 500 * 100 = 50000
+        assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, builder_addr, 50000]
 
     def test_revoke_max_builder_fee(self, write_dex_sync: DecibelWriteDexSync) -> None:
         builder_addr = "0x" + "ee" * 32

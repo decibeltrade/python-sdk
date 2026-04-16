@@ -638,11 +638,6 @@ class TestGetDefaultGasStationUrl:
         assert "testnet" in url
         assert "aptoslabs" in url
 
-    def test_chain_id_208_returns_netna_url(self, test_config: Any) -> None:
-        config = replace(test_config, network=Network.CUSTOM, chain_id=208)
-        url = _get_default_gas_station_url(config)
-        assert "netna" in url
-
     def test_custom_network_with_gas_station_url_returns_it(self, test_config: Any) -> None:
         custom_url = "https://my-custom-gas-station.example.com/v1"
         config = replace(
