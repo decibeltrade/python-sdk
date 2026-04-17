@@ -449,6 +449,16 @@ def _parse_args() -> argparse.Namespace:
             "orders and places a POST_ONLY bid/ask around mid price with inventory skew."
         ),
     )
+
+    def _env_default_numeric(name: str, default: float | int, caster: type[float] | type[int]):
+        raw = os.getenv(name)
+        if raw is None:
+            return default
+        try:
+            return caster(raw)
+        except ValueError:
+            parser.error(f"invalid value for {name}: {raw!r} (expected {caster.__name__})")
+
     parser.add_argument(
         "--network",
         default=os.getenv("NETWORK", "testnet"),
@@ -460,50 +470,54 @@ def _parse_args() -> argparse.Namespace:
         default=os.getenv("MARKET_NAME", "BTC/USD"),
         help="Market symbol, e.g. BTC/USD",
     )
-    parser.add_argument("--spread", type=float, default=os.getenv("MM_SPREAD", "0.001"))
+    parser.add_argument(
+        "--spread",
+        type=float,
+        default=_env_default_numeric("MM_SPREAD", 0.001, float),
+    )
     parser.add_argument(
         "--order-size",
         type=float,
-        default=os.getenv("MM_ORDER_SIZE", "0.001"),
+        default=_env_default_numeric("MM_ORDER_SIZE", 0.001, float),
     )
     parser.add_argument(
         "--max-inventory",
         type=float,
-        default=os.getenv("MM_MAX_INVENTORY", "0.005"),
+        default=_env_default_numeric("MM_MAX_INVENTORY", 0.005, float),
     )
     parser.add_argument(
         "--skew-per-unit",
         type=float,
-        default=os.getenv("MM_SKEW_PER_UNIT", "0.0001"),
+        default=_env_default_numeric("MM_SKEW_PER_UNIT", 0.0001, float),
     )
     parser.add_argument(
         "--max-margin-usage",
         type=float,
-        default=os.getenv("MM_MAX_MARGIN", "0.5"),
+        default=_env_default_numeric("MM_MAX_MARGIN", 0.5, float),
         help="Pause quoting when cross_margin_ratio exceeds this value",
     )
     parser.add_argument(
         "--refresh-interval",
         type=float,
-        default=os.getenv("MM_REFRESH_S", "20"),
+        default=_env_default_numeric("MM_REFRESH_S", 20.0, float),
         help="Seconds between cycles",
     )
     parser.add_argument(
         "--cooldown",
         type=float,
-        default=os.getenv("MM_COOLDOWN_S", "1.5"),
+        default=_env_default_numeric("MM_COOLDOWN_S", 1.5, float),
         help="Seconds between placing bid and ask",
     )
     parser.add_argument(
         "--cancel-resync",
         type=float,
-        default=os.getenv("MM_CANCEL_RESYNC_S", "8"),
+        default=_env_default_numeric("MM_CANCEL_RESYNC_S", 8.0, float),
         help="Sleep before re-checking open orders after cancel failures",
     )
     parser.add_argument(
         "--max-cycles",
         type=int,
-        default=os.getenv("MAX_CYCLES", "0"),
+        default=_env_default_numeric("MAX_CYCLES", 0, int),
         help="Stop after N cycles (0 = run forever)",
     )
     parser.add_argument(

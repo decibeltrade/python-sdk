@@ -149,7 +149,7 @@ def test_parse_args_invalid_env_uses_argparse_error(
         mm._parse_args()
     assert excinfo.value.code == 2
     err = capsys.readouterr().err
-    assert "invalid float value" in err
+    assert "invalid value for MM_SPREAD" in err
 
 
 def test_place_quote_dry_run_uses_price_x_size(capsys: pytest.CaptureFixture[str]) -> None:

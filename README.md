@@ -170,8 +170,8 @@ export SUBACCOUNT_ADDRESS="0x..."
 export NETWORK="testnet"
 python examples/write/market_maker_bot.py --dry-run
 
-# Live mode (requires PRIVATE_KEY)
-export PRIVATE_KEY="0x..."
+# Live mode (requires PRIVATE_KEY as plain hex, no 0x prefix)
+export PRIVATE_KEY="your_private_key_hex"
 python examples/write/market_maker_bot.py \
   --market="BTC/USD" \
   --spread=0.001 \
