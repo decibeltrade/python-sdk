@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import importlib.util
 import sys
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -138,6 +139,19 @@ def test_parse_args_accepts_named_config_network_key(monkeypatch: pytest.MonkeyP
     assert args.network == network_key
 
 
+def test_parse_args_invalid_env_uses_argparse_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    mm = _load_market_maker_module()
+    monkeypatch.setenv("MM_SPREAD", "abc")
+    monkeypatch.setattr(sys, "argv", ["market_maker_bot.py"])
+    with pytest.raises(SystemExit) as excinfo:
+        mm._parse_args()
+    assert excinfo.value.code == 2
+    err = capsys.readouterr().err
+    assert "invalid float value" in err
+
+
 def test_place_quote_dry_run_uses_price_x_size(capsys: pytest.CaptureFixture[str]) -> None:
     mm = _load_market_maker_module()
     market = _fake_market()
@@ -147,13 +161,64 @@ def test_place_quote_dry_run_uses_price_x_size(capsys: pytest.CaptureFixture[str
             market=market,
             subaccount_addr="0xsub",
             is_buy=True,
-            price=100.5,
-            size=0.002,
+            price=Decimal("100.5"),
+            size=Decimal("0.002"),
             dry_run=True,
         )
     )
     out = capsys.readouterr().out
     assert "would place bid: 100.5 x 0.002" in out
+
+
+def test_validate_settings_rejects_non_finite_limits() -> None:
+    mm = _load_market_maker_module()
+    with pytest.raises(ValueError, match="max_inventory must be a finite value > 0"):
+        mm._validate_settings(mm.MMSettings(max_inventory=float("nan")))
+    with pytest.raises(ValueError, match="max_margin_usage must be a finite value > 0"):
+        mm._validate_settings(mm.MMSettings(max_margin_usage=float("nan")))
+
+
+def test_decimal_rounding_helpers_stable_for_tiny_values() -> None:
+    mm = _load_market_maker_module()
+    down = mm._round_to_tick_size_decimal(
+        Decimal("0.00000000000123"), tick_size=1, px_decimals=12, round_up=False
+    )
+    up = mm._round_to_tick_size_decimal(
+        Decimal("0.00000000000123"), tick_size=1, px_decimals=12, round_up=True
+    )
+    assert down == Decimal("0.000000000001")
+    assert up == Decimal("0.000000000002")
+    assert mm._decimal_to_chain_units(Decimal("0.000000000001"), 12) == 1
+
+
+def test_place_quote_live_uses_integer_chain_units() -> None:
+    mm = _load_market_maker_module()
+    market = _fake_market()
+
+    class _FakeWrite:
+        def __init__(self):
+            self.kwargs = None
+
+        async def place_order(self, **kwargs):
+            self.kwargs = kwargs
+            return SimpleNamespace(error="simulated")
+
+    write = _FakeWrite()
+    asyncio.run(
+        mm._place_quote(
+            write=write,
+            market=market,
+            subaccount_addr="0xsub",
+            is_buy=True,
+            price=Decimal("100.12"),
+            size=Decimal("0.1234"),
+            dry_run=False,
+        )
+    )
+    assert isinstance(write.kwargs["price"], int)
+    assert isinstance(write.kwargs["size"], int)
+    assert write.kwargs["price"] == 10012
+    assert write.kwargs["size"] == 1234
 
 
 def test_sync_state_uses_mid_px_without_falsy_fallback() -> None:

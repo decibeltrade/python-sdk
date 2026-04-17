@@ -5,6 +5,7 @@ import asyncio
 import math
 import os
 from dataclasses import dataclass
+from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_EVEN, Decimal
 from enum import StrEnum
 
 from aptos_sdk.account import Account
@@ -17,9 +18,6 @@ from decibel import (
     GasPriceManager,
     PlaceOrderSuccess,
     TimeInForce,
-    amount_to_chain_units,
-    round_to_tick_size,
-    round_to_valid_order_size,
 )
 from decibel.read import DecibelReadDex, PerpMarket
 
@@ -49,9 +47,9 @@ class QuoteStatus(StrEnum):
 @dataclass(frozen=True)
 class QuoteDecision:
     status: QuoteStatus
-    bid: float | None = None
-    ask: float | None = None
-    size: float | None = None
+    bid: Decimal | None = None
+    ask: Decimal | None = None
+    size: Decimal | None = None
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -73,6 +71,53 @@ def _resolve_market(markets: list[PerpMarket], requested_name: str) -> PerpMarke
     return None
 
 
+def _to_decimal(value: float | int | str | Decimal) -> Decimal:
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
+def _decimal_scale(decimals: int) -> Decimal:
+    return Decimal(10) ** decimals
+
+
+def _round_to_tick_size_decimal(
+    price: Decimal, tick_size: int, px_decimals: int, round_up: bool
+) -> Decimal:
+    if price == 0:
+        return Decimal(0)
+    scale = _decimal_scale(px_decimals)
+    denormalized = price * scale
+    ticks = denormalized / Decimal(tick_size)
+    rounding = ROUND_CEILING if round_up else ROUND_FLOOR
+    rounded_ticks = ticks.to_integral_value(rounding=rounding)
+    rounded_units = rounded_ticks * Decimal(tick_size)
+    return rounded_units / scale
+
+
+def _round_to_valid_order_size_decimal(
+    order_size: Decimal,
+    lot_size: int,
+    sz_decimals: int,
+    min_size: int,
+) -> Decimal:
+    if order_size == 0:
+        return Decimal(0)
+    scale = _decimal_scale(sz_decimals)
+    normalized_min_size = Decimal(min_size) / scale
+    if order_size < normalized_min_size:
+        return normalized_min_size
+    denormalized = order_size * scale
+    lots = (denormalized / Decimal(lot_size)).to_integral_value(rounding=ROUND_HALF_EVEN)
+    rounded_units = lots * Decimal(lot_size)
+    return rounded_units / scale
+
+
+def _decimal_to_chain_units(amount: Decimal, decimals: int) -> int:
+    scale = _decimal_scale(decimals)
+    return int((amount * scale).to_integral_value(rounding=ROUND_HALF_EVEN))
+
+
 def _compute_quotes(
     *,
     mid: float,
@@ -89,23 +134,32 @@ def _compute_quotes(
 
     if not math.isfinite(settings.spread) or settings.spread <= 0:
         raise ValueError("spread must be a finite value > 0; adjust --spread")
+    if not math.isfinite(settings.max_inventory) or settings.max_inventory <= 0:
+        raise ValueError("max_inventory must be a finite value > 0; adjust --max-inventory")
+    if not math.isfinite(settings.max_margin_usage) or settings.max_margin_usage <= 0:
+        raise ValueError("max_margin_usage must be a finite value > 0; adjust --max-margin-usage")
 
-    tick_human = tick_size / (10**market.px_decimals)
-    min_spread = tick_human / mid
-    if settings.spread < min_spread:
+    mid_d = _to_decimal(mid)
+    inventory_d = _to_decimal(inventory)
+    spread_d = _to_decimal(settings.spread)
+    max_inventory_d = _to_decimal(settings.max_inventory)
+
+    tick_human = Decimal(tick_size) / _decimal_scale(market.px_decimals)
+    min_spread = tick_human / mid_d
+    if spread_d < min_spread:
         raise ValueError(
             f"spread {settings.spread} is tighter than one tick ({min_spread:.8f}); "
             "increase --spread",
         )
 
-    if abs(inventory) >= settings.max_inventory:
+    if abs(inventory_d) >= max_inventory_d:
         return QuoteDecision(status=QuoteStatus.PAUSE_INVENTORY_LIMIT)
 
     if not math.isfinite(settings.order_size) or settings.order_size <= 0:
         return QuoteDecision(status=QuoteStatus.PAUSE_SIZE_INVALID)
 
-    valid_size = round_to_valid_order_size(
-        settings.order_size,
+    valid_size = _round_to_valid_order_size_decimal(
+        _to_decimal(settings.order_size),
         lot_size=lot_size,
         sz_decimals=market.sz_decimals,
         min_size=min_size,
@@ -113,24 +167,24 @@ def _compute_quotes(
     if valid_size <= 0:
         return QuoteDecision(status=QuoteStatus.PAUSE_SIZE_INVALID)
 
-    half_spread = settings.spread / 2.0
-    skew = inventory * settings.skew_per_unit
+    half_spread = spread_d / Decimal(2)
+    skew = inventory_d * _to_decimal(settings.skew_per_unit)
 
-    raw_bid = mid * (1.0 - half_spread - skew)
-    raw_ask = mid * (1.0 + half_spread - skew)
-    if not math.isfinite(raw_bid) or not math.isfinite(raw_ask) or raw_bid <= 0 or raw_ask <= 0:
+    raw_bid = mid_d * (Decimal(1) - half_spread - skew)
+    raw_ask = mid_d * (Decimal(1) + half_spread - skew)
+    if (not raw_bid.is_finite()) or (not raw_ask.is_finite()) or raw_bid <= 0 or raw_ask <= 0:
         raise ValueError(
             "computed quote prices are non-positive/invalid; adjust --skew-per-unit "
             "or --max-inventory",
         )
 
-    bid = round_to_tick_size(
+    bid = _round_to_tick_size_decimal(
         raw_bid,
         tick_size=tick_size,
         px_decimals=market.px_decimals,
         round_up=False,
     )
-    ask = round_to_tick_size(
+    ask = _round_to_tick_size_decimal(
         raw_ask,
         tick_size=tick_size,
         px_decimals=market.px_decimals,
@@ -138,13 +192,13 @@ def _compute_quotes(
     )
 
     if ask <= bid:
-        ask = round_to_tick_size(
+        ask = _round_to_tick_size_decimal(
             bid + tick_human,
             tick_size=tick_size,
             px_decimals=market.px_decimals,
             round_up=True,
         )
-    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0 or ask <= 0:
+    if (not bid.is_finite()) or (not ask.is_finite()) or bid <= 0 or ask <= 0:
         raise ValueError(
             "rounded quote prices are non-positive/invalid; adjust --skew-per-unit "
             "or --max-inventory",
@@ -237,8 +291,8 @@ async def _place_quote(
     market: PerpMarket,
     subaccount_addr: str,
     is_buy: bool,
-    price: float,
-    size: float,
+    price: Decimal,
+    size: Decimal,
     dry_run: bool,
 ) -> None:
     side = "bid" if is_buy else "ask"
@@ -250,8 +304,8 @@ async def _place_quote(
 
     result = await write.place_order(
         market_name=market.market_name,
-        price=amount_to_chain_units(price, market.px_decimals),
-        size=amount_to_chain_units(size, market.sz_decimals),
+        price=_decimal_to_chain_units(price, market.px_decimals),
+        size=_decimal_to_chain_units(size, market.sz_decimals),
         is_buy=is_buy,
         time_in_force=TimeInForce.PostOnly,
         is_reduce_only=False,
@@ -406,50 +460,50 @@ def _parse_args() -> argparse.Namespace:
         default=os.getenv("MARKET_NAME", "BTC/USD"),
         help="Market symbol, e.g. BTC/USD",
     )
-    parser.add_argument("--spread", type=float, default=float(os.getenv("MM_SPREAD", "0.001")))
+    parser.add_argument("--spread", type=float, default=os.getenv("MM_SPREAD", "0.001"))
     parser.add_argument(
         "--order-size",
         type=float,
-        default=float(os.getenv("MM_ORDER_SIZE", "0.001")),
+        default=os.getenv("MM_ORDER_SIZE", "0.001"),
     )
     parser.add_argument(
         "--max-inventory",
         type=float,
-        default=float(os.getenv("MM_MAX_INVENTORY", "0.005")),
+        default=os.getenv("MM_MAX_INVENTORY", "0.005"),
     )
     parser.add_argument(
         "--skew-per-unit",
         type=float,
-        default=float(os.getenv("MM_SKEW_PER_UNIT", "0.0001")),
+        default=os.getenv("MM_SKEW_PER_UNIT", "0.0001"),
     )
     parser.add_argument(
         "--max-margin-usage",
         type=float,
-        default=float(os.getenv("MM_MAX_MARGIN", "0.5")),
+        default=os.getenv("MM_MAX_MARGIN", "0.5"),
         help="Pause quoting when cross_margin_ratio exceeds this value",
     )
     parser.add_argument(
         "--refresh-interval",
         type=float,
-        default=float(os.getenv("MM_REFRESH_S", "20")),
+        default=os.getenv("MM_REFRESH_S", "20"),
         help="Seconds between cycles",
     )
     parser.add_argument(
         "--cooldown",
         type=float,
-        default=float(os.getenv("MM_COOLDOWN_S", "1.5")),
+        default=os.getenv("MM_COOLDOWN_S", "1.5"),
         help="Seconds between placing bid and ask",
     )
     parser.add_argument(
         "--cancel-resync",
         type=float,
-        default=float(os.getenv("MM_CANCEL_RESYNC_S", "8")),
+        default=os.getenv("MM_CANCEL_RESYNC_S", "8"),
         help="Sleep before re-checking open orders after cancel failures",
     )
     parser.add_argument(
         "--max-cycles",
         type=int,
-        default=int(os.getenv("MAX_CYCLES", "0")),
+        default=os.getenv("MAX_CYCLES", "0"),
         help="Stop after N cycles (0 = run forever)",
     )
     parser.add_argument(
@@ -459,6 +513,13 @@ def _parse_args() -> argparse.Namespace:
         help="Simulate cancels/orders without sending transactions",
     )
     return parser.parse_args()
+
+
+def _validate_settings(settings: MMSettings) -> None:
+    if not math.isfinite(settings.max_inventory) or settings.max_inventory <= 0:
+        raise ValueError("max_inventory must be a finite value > 0; adjust --max-inventory")
+    if not math.isfinite(settings.max_margin_usage) or settings.max_margin_usage <= 0:
+        raise ValueError("max_margin_usage must be a finite value > 0; adjust --max-margin-usage")
 
 
 async def main() -> int:
@@ -490,6 +551,7 @@ async def main() -> int:
         max_cycles=args.max_cycles,
         dry_run=dry_run,
     )
+    _validate_settings(settings)
 
     config = NAMED_CONFIGS[args.network]
     read = DecibelReadDex(config, api_key=node_api_key)
