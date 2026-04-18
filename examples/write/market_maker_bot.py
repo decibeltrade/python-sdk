@@ -530,10 +530,24 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _validate_settings(settings: MMSettings) -> None:
-    if not math.isfinite(settings.max_inventory) or settings.max_inventory <= 0:
-        raise ValueError("max_inventory must be a finite value > 0; adjust --max-inventory")
-    if not math.isfinite(settings.max_margin_usage) or settings.max_margin_usage <= 0:
-        raise ValueError("max_margin_usage must be a finite value > 0; adjust --max-margin-usage")
+    errors: list[str] = []
+    finite_positive_fields = (
+        ("spread", settings.spread, "--spread"),
+        ("order_size", settings.order_size, "--order-size"),
+        ("max_inventory", settings.max_inventory, "--max-inventory"),
+        ("skew_per_unit", settings.skew_per_unit, "--skew-per-unit"),
+        ("max_margin_usage", settings.max_margin_usage, "--max-margin-usage"),
+        ("refresh_interval_s", settings.refresh_interval_s, "--refresh-interval"),
+        ("cooldown_s", settings.cooldown_s, "--cooldown"),
+        ("cancel_resync_s", settings.cancel_resync_s, "--cancel-resync"),
+    )
+    for field_name, value, flag in finite_positive_fields:
+        if not math.isfinite(value) or value <= 0:
+            errors.append(f"{field_name} must be a finite value > 0; adjust {flag}")
+    if settings.max_cycles < 0:
+        errors.append("max_cycles must be >= 0; adjust --max-cycles")
+    if errors:
+        raise ValueError("; ".join(errors))
 
 
 async def main() -> int:

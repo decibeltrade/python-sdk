@@ -178,6 +178,17 @@ def test_validate_settings_rejects_non_finite_limits() -> None:
         mm._validate_settings(mm.MMSettings(max_margin_usage=float("nan")))
 
 
+def test_validate_settings_reports_multiple_invalid_fields() -> None:
+    mm = _load_market_maker_module()
+    bad = mm.MMSettings(spread=float("nan"), max_margin_usage=0.0, max_cycles=-1)
+    with pytest.raises(ValueError) as excinfo:
+        mm._validate_settings(bad)
+    msg = str(excinfo.value)
+    assert "spread must be a finite value > 0; adjust --spread" in msg
+    assert "max_margin_usage must be a finite value > 0; adjust --max-margin-usage" in msg
+    assert "max_cycles must be >= 0; adjust --max-cycles" in msg
+
+
 def test_decimal_rounding_helpers_stable_for_tiny_values() -> None:
     mm = _load_market_maker_module()
     down = mm._round_to_tick_size_decimal(
@@ -284,8 +295,8 @@ def test_main_returns_nonzero_for_value_error(monkeypatch: pytest.MonkeyPatch) -
             skew_per_unit=0.0001,
             max_margin_usage=0.5,
             refresh_interval=0.01,
-            cooldown=0.0,
-            cancel_resync=0.0,
+            cooldown=0.01,
+            cancel_resync=0.01,
             max_cycles=1,
             dry_run=True,
         ),
