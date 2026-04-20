@@ -1,3 +1,12 @@
+"""
+Reference market maker example.
+
+WARNING:
+- This script is for educational/reference purposes only.
+- Do NOT run on mainnet with real funds unless you fully understand and audit it.
+- Automated trading can lose money due to market volatility, latency, and config mistakes.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -445,7 +454,8 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Single-file Decibel market maker bot: each cycle cancels existing market "
-            "orders and places a POST_ONLY bid/ask around mid price with inventory skew."
+            "orders and places a POST_ONLY bid/ask around mid price with inventory skew. "
+            "Reference only; avoid mainnet live trading unless fully audited."
         ),
     )
 
@@ -603,8 +613,15 @@ async def main() -> int:
             f"refresh={settings.refresh_interval_s}s "
             f"cooldown={settings.cooldown_s}s dry_run={settings.dry_run}"
         )
+        # Safety reminder for anyone running this example as-is.
+        if args.network == "mainnet":
+            print(
+                "  WARNING: This example is reference-only and may lose funds. "
+                "Do not run live on mainnet without full strategy/risk validation."
+            )
 
         if not settings.dry_run:
+            # Live-mode sends real transactions. Use with caution.
             private_key = PrivateKey.from_hex(private_key_hex)
             account = Account.load_key(private_key.hex())
             gas = GasPriceManager(config)
