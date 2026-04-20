@@ -310,7 +310,6 @@ async def _place_quote(
         time_in_force=TimeInForce.PostOnly,
         is_reduce_only=False,
         subaccount_addr=subaccount_addr,
-        tick_size=market.tick_size,
     )
     if isinstance(result, PlaceOrderSuccess):
         print(f"  {side} placed: {price} x {size} (tx={result.transaction_hash[:16]}...)")

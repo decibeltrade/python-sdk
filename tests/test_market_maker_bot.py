@@ -230,6 +230,7 @@ def test_place_quote_live_uses_integer_chain_units() -> None:
     assert isinstance(write.kwargs["size"], int)
     assert write.kwargs["price"] == 10012
     assert write.kwargs["size"] == 1234
+    assert "tick_size" not in write.kwargs
 
 
 def test_sync_state_uses_mid_px_without_falsy_fallback() -> None:
