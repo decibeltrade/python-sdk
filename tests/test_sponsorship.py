@@ -187,7 +187,7 @@ async def test_submit_tx_passes_fee_payer_account_to_fee_paid_submitter(
 
     monkeypatch.setattr(base_module, "submit_fee_paid_transaction", fake_fee_paid)
 
-    tx = SimpleNamespace(fee_payer_address=AccountAddress.from_str("0x0"))
+    tx = SimpleNamespace(fee_payer_address=expected_fee_payer_account.address())
     sender_authenticator = SimpleNamespace()
     response = await sdk.submit_tx(tx, sender_authenticator, txn_submit_timeout=3.0)
 
@@ -234,7 +234,7 @@ def test_submit_tx_sync_passes_fee_payer_account_to_fee_paid_submitter(
 
     monkeypatch.setattr(base_module, "submit_fee_paid_transaction_sync", fake_fee_paid)
 
-    tx = SimpleNamespace(fee_payer_address=AccountAddress.from_str("0x0"))
+    tx = SimpleNamespace(fee_payer_address=expected_fee_payer_account.address())
     sender_authenticator = SimpleNamespace()
     response = sdk.submit_tx(tx, sender_authenticator, txn_submit_timeout=4.0)
 
@@ -272,7 +272,7 @@ async def test_send_tx_overrides_fee_payer_address_in_local_mode(
         gas_unit_price: int | None = None,
     ) -> SimpleNamespace:
         _ = (data, sender_addr, max_gas_amount, gas_unit_price)
-        tx = SimpleNamespace(fee_payer_address=AccountAddress.from_str("0x0"))
+        tx = SimpleNamespace(fee_payer_address=fee_payer.address())
         built_transactions.append(tx)
         return tx
 
@@ -341,7 +341,7 @@ def test_send_tx_sync_overrides_fee_payer_address_in_local_mode(
         gas_unit_price: int | None = None,
     ) -> SimpleNamespace:
         _ = (data, sender_addr, max_gas_amount, gas_unit_price)
-        tx = SimpleNamespace(fee_payer_address=AccountAddress.from_str("0x0"))
+        tx = SimpleNamespace(fee_payer_address=fee_payer.address())
         built_transactions.append(tx)
         return tx
 

@@ -163,7 +163,7 @@ class BaseSDK:
             else:
                 gas_unit_price = await self._fetch_gas_price_estimation()
 
-        return build_simple_transaction_sync(
+        transaction = build_simple_transaction_sync(
             sender=sender,
             data=data,
             chain_id=self._chain_id,
@@ -174,6 +174,8 @@ class BaseSDK:
             time_delta_ms=self._time_delta_ms,
             max_gas_amount=max_gas_amount or DEFAULT_MAX_GAS_AMOUNT,
         )
+        self._apply_fee_payer_address_override(transaction)
+        return transaction
 
     async def submit_tx(
         self,
@@ -182,7 +184,7 @@ class BaseSDK:
         *,
         txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
-        self._apply_fee_payer_address_override(transaction)
+        self._validate_fee_payer_address(transaction)
 
         if self._no_fee_payer:
             return await self._submit_direct(transaction, sender_authenticator, txn_submit_timeout)
@@ -207,7 +209,6 @@ class BaseSDK:
         sender = signer.address()
 
         transaction = await self.build_tx(payload, sender)
-        self._apply_fee_payer_address_override(transaction)
 
         if not self._skip_simulate:
             sim_result = await self._simulate_transaction(transaction)
@@ -233,7 +234,6 @@ class BaseSDK:
                 max_gas_amount=max_gas_amount,
                 gas_unit_price=gas_unit_price,
             )
-            self._apply_fee_payer_address_override(transaction)
 
         sender_authenticator = self._sign_transaction(signer, transaction)
 
@@ -306,6 +306,19 @@ class BaseSDK:
             )
 
         raise ValueError("transaction.fee_payer_address does not match fee_payer_account")
+
+    def _validate_fee_payer_address(self, transaction: SimpleTransaction) -> None:
+        if self._fee_payer_account is None:
+            return
+
+        expected_fee_payer = self._fee_payer_account.address()
+        if transaction.fee_payer_address is None:
+            raise ValueError(
+                "transaction.fee_payer_address must be set when fee_payer_account is used"
+            )
+
+        if transaction.fee_payer_address != expected_fee_payer:
+            raise ValueError("transaction.fee_payer_address does not match fee_payer_account")
 
     async def _fetch_gas_price_estimation(self) -> int:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
@@ -563,7 +576,7 @@ class BaseSDKSync:
             else:
                 gas_unit_price = self._fetch_gas_price_estimation()
 
-        return build_simple_transaction_sync(
+        transaction = build_simple_transaction_sync(
             sender=sender,
             data=data,
             chain_id=self._chain_id,
@@ -574,6 +587,8 @@ class BaseSDKSync:
             time_delta_ms=self._time_delta_ms,
             max_gas_amount=max_gas_amount or DEFAULT_MAX_GAS_AMOUNT,
         )
+        self._apply_fee_payer_address_override(transaction)
+        return transaction
 
     def submit_tx(
         self,
@@ -582,7 +597,7 @@ class BaseSDKSync:
         *,
         txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
-        self._apply_fee_payer_address_override(transaction)
+        self._validate_fee_payer_address(transaction)
 
         if self._no_fee_payer:
             return self._submit_direct(transaction, sender_authenticator, txn_submit_timeout)
@@ -607,7 +622,6 @@ class BaseSDKSync:
         sender = signer.address()
 
         transaction = self.build_tx(payload, sender)
-        self._apply_fee_payer_address_override(transaction)
 
         if not self._skip_simulate:
             sim_result = self._simulate_transaction(transaction)
@@ -633,7 +647,6 @@ class BaseSDKSync:
                 max_gas_amount=max_gas_amount,
                 gas_unit_price=gas_unit_price,
             )
-            self._apply_fee_payer_address_override(transaction)
 
         sender_authenticator = self._sign_transaction(signer, transaction)
 
@@ -704,6 +717,19 @@ class BaseSDKSync:
             )
 
         raise ValueError("transaction.fee_payer_address does not match fee_payer_account")
+
+    def _validate_fee_payer_address(self, transaction: SimpleTransaction) -> None:
+        if self._fee_payer_account is None:
+            return
+
+        expected_fee_payer = self._fee_payer_account.address()
+        if transaction.fee_payer_address is None:
+            raise ValueError(
+                "transaction.fee_payer_address must be set when fee_payer_account is used"
+            )
+
+        if transaction.fee_payer_address != expected_fee_payer:
+            raise ValueError("transaction.fee_payer_address does not match fee_payer_account")
 
     def _fetch_gas_price_estimation(self) -> int:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
