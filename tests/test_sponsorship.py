@@ -388,6 +388,64 @@ def test_send_tx_sync_overrides_fee_payer_address_in_local_mode(
 
 
 @pytest.mark.asyncio
+async def test_submit_tx_rejects_missing_fee_payer_address_in_local_mode() -> None:
+    sdk = BaseSDK(
+        TESTNET_CONFIG,
+        Account.generate(),
+        BaseSDKOptions(fee_payer_account=Account.generate()),
+    )
+
+    with pytest.raises(ValueError, match="must be set"):
+        await sdk.submit_tx(
+            SimpleNamespace(fee_payer_address=None),
+            SimpleNamespace(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_submit_tx_rejects_mismatched_fee_payer_address_in_local_mode() -> None:
+    sdk = BaseSDK(
+        TESTNET_CONFIG,
+        Account.generate(),
+        BaseSDKOptions(fee_payer_account=Account.generate()),
+    )
+
+    with pytest.raises(ValueError, match="does not match"):
+        await sdk.submit_tx(
+            SimpleNamespace(fee_payer_address=AccountAddress.from_str("0x1")),
+            SimpleNamespace(),
+        )
+
+
+def test_submit_tx_sync_rejects_missing_fee_payer_address_in_local_mode() -> None:
+    sdk = BaseSDKSync(
+        TESTNET_CONFIG,
+        Account.generate(),
+        BaseSDKOptionsSync(fee_payer_account=Account.generate()),
+    )
+
+    with pytest.raises(ValueError, match="must be set"):
+        sdk.submit_tx(
+            SimpleNamespace(fee_payer_address=None),
+            SimpleNamespace(),
+        )
+
+
+def test_submit_tx_sync_rejects_mismatched_fee_payer_address_in_local_mode() -> None:
+    sdk = BaseSDKSync(
+        TESTNET_CONFIG,
+        Account.generate(),
+        BaseSDKOptionsSync(fee_payer_account=Account.generate()),
+    )
+
+    with pytest.raises(ValueError, match="does not match"):
+        sdk.submit_tx(
+            SimpleNamespace(fee_payer_address=AccountAddress.from_str("0x1")),
+            SimpleNamespace(),
+        )
+
+
+@pytest.mark.asyncio
 async def test_fee_pay_async_prefers_local_mode_when_account_provided(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

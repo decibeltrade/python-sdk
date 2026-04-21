@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 import httpx
+from aptos_sdk.account_address import AccountAddress
 from aptos_sdk.async_client import RestClient
 from aptos_sdk.authenticator import (
     AccountAuthenticator,
@@ -31,7 +32,6 @@ from .abi import AbiRegistry
 
 if TYPE_CHECKING:
     from aptos_sdk.account import Account
-    from aptos_sdk.account_address import AccountAddress
 
     from ._constants import DecibelConfig
     from ._gas_price_manager import GasPriceManager, GasPriceManagerSync
@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_MAX_GAS_AMOUNT = 200_000
 DEFAULT_GAS_ESTIMATE = 100
 MAX_GAS_UNITS_LIMIT = 2_000_000
+FEE_PAYER_PLACEHOLDER_ADDRESS = AccountAddress.from_str("0x0")
 
 
 @dataclass
@@ -286,8 +287,25 @@ class BaseSDK:
             return raw_txn.sign(signer.private_key)
 
     def _apply_fee_payer_address_override(self, transaction: SimpleTransaction) -> None:
-        if self._fee_payer_account is not None:
-            transaction.fee_payer_address = self._fee_payer_account.address()
+        if self._fee_payer_account is None:
+            return
+
+        expected_fee_payer = self._fee_payer_account.address()
+        current_fee_payer = transaction.fee_payer_address
+
+        if current_fee_payer == expected_fee_payer:
+            return
+
+        if current_fee_payer == FEE_PAYER_PLACEHOLDER_ADDRESS:
+            transaction.fee_payer_address = expected_fee_payer
+            return
+
+        if current_fee_payer is None:
+            raise ValueError(
+                "transaction.fee_payer_address must be set when fee_payer_account is used"
+            )
+
+        raise ValueError("transaction.fee_payer_address does not match fee_payer_account")
 
     async def _fetch_gas_price_estimation(self) -> int:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
@@ -667,8 +685,25 @@ class BaseSDKSync:
             return raw_txn.sign(signer.private_key)
 
     def _apply_fee_payer_address_override(self, transaction: SimpleTransaction) -> None:
-        if self._fee_payer_account is not None:
-            transaction.fee_payer_address = self._fee_payer_account.address()
+        if self._fee_payer_account is None:
+            return
+
+        expected_fee_payer = self._fee_payer_account.address()
+        current_fee_payer = transaction.fee_payer_address
+
+        if current_fee_payer == expected_fee_payer:
+            return
+
+        if current_fee_payer == FEE_PAYER_PLACEHOLDER_ADDRESS:
+            transaction.fee_payer_address = expected_fee_payer
+            return
+
+        if current_fee_payer is None:
+            raise ValueError(
+                "transaction.fee_payer_address must be set when fee_payer_account is used"
+            )
+
+        raise ValueError("transaction.fee_payer_address does not match fee_payer_account")
 
     def _fetch_gas_price_estimation(self) -> int:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
