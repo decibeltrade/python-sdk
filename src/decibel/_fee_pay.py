@@ -442,11 +442,11 @@ def _build_fee_payer_signed_transaction_bytes(
     sender_authenticator: AccountAuthenticator,
     fee_payer_account: Account,
 ) -> bytes:
+    if transaction.fee_payer_address is None:
+        raise ValueError("transaction.fee_payer_address must be set for local fee payer submission")
+
     fee_payer_address = fee_payer_account.address()
-    if (
-        transaction.fee_payer_address is not None
-        and transaction.fee_payer_address != fee_payer_address
-    ):
+    if transaction.fee_payer_address != fee_payer_address:
         raise ValueError("transaction.fee_payer_address does not match fee_payer_account")
 
     fee_payer_raw_txn = FeePayerRawTransaction(
