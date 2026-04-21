@@ -55,6 +55,7 @@ MAX_GAS_UNITS_LIMIT = 2_000_000
 class BaseSDKOptions:
     skip_simulate: bool = False
     no_fee_payer: bool = False
+    fee_payer_account: Account | None = None
     node_api_key: str | None = None
     gas_price_manager: GasPriceManager | None = None
     time_delta_ms: int = 0
@@ -64,6 +65,7 @@ class BaseSDKOptions:
 class BaseSDKOptionsSync:
     skip_simulate: bool = False
     no_fee_payer: bool = False
+    fee_payer_account: Account | None = None
     node_api_key: str | None = None
     gas_price_manager: GasPriceManagerSync | None = None
     time_delta_ms: int = 0
@@ -86,9 +88,13 @@ class BaseSDK:
         opts = opts or BaseSDKOptions()
         self._skip_simulate = opts.skip_simulate
         self._no_fee_payer = opts.no_fee_payer
+        self._fee_payer_account = opts.fee_payer_account
         self._node_api_key = opts.node_api_key
         self._gas_price_manager = opts.gas_price_manager
         self._time_delta_ms = opts.time_delta_ms
+
+        if self._no_fee_payer and self._fee_payer_account is not None:
+            raise ValueError("no_fee_payer and fee_payer_account cannot be used together")
 
         if config.chain_id is None:
             logger.warning(
@@ -181,6 +187,7 @@ class BaseSDK:
             self._config,
             transaction,
             sender_authenticator,
+            fee_payer_account=self._fee_payer_account,
             txn_submit_timeout=txn_submit_timeout,
         )
 
@@ -196,6 +203,7 @@ class BaseSDK:
         sender = signer.address()
 
         transaction = await self.build_tx(payload, sender)
+        self._apply_fee_payer_address_override(transaction)
 
         if not self._skip_simulate:
             sim_result = await self._simulate_transaction(transaction)
@@ -221,6 +229,7 @@ class BaseSDK:
                 max_gas_amount=max_gas_amount,
                 gas_unit_price=gas_unit_price,
             )
+            self._apply_fee_payer_address_override(transaction)
 
         sender_authenticator = self._sign_transaction(signer, transaction)
 
@@ -272,6 +281,10 @@ class BaseSDK:
             return fee_payer_txn.sign(signer.private_key)
         else:
             return raw_txn.sign(signer.private_key)
+
+    def _apply_fee_payer_address_override(self, transaction: SimpleTransaction) -> None:
+        if self._fee_payer_account is not None:
+            transaction.fee_payer_address = self._fee_payer_account.address()
 
     async def _fetch_gas_price_estimation(self) -> int:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
@@ -458,10 +471,14 @@ class BaseSDKSync:
         opts = opts or BaseSDKOptionsSync()
         self._skip_simulate = opts.skip_simulate
         self._no_fee_payer = opts.no_fee_payer
+        self._fee_payer_account = opts.fee_payer_account
         self._node_api_key = opts.node_api_key
         self._gas_price_manager = opts.gas_price_manager
         self._time_delta_ms = opts.time_delta_ms
         self._http_client = opts.http_client
+
+        if self._no_fee_payer and self._fee_payer_account is not None:
+            raise ValueError("no_fee_payer and fee_payer_account cannot be used together")
 
         if config.chain_id is None:
             logger.warning(
@@ -550,6 +567,7 @@ class BaseSDKSync:
             self._config,
             transaction,
             sender_authenticator,
+            fee_payer_account=self._fee_payer_account,
             txn_submit_timeout=txn_submit_timeout,
         )
 
@@ -565,6 +583,7 @@ class BaseSDKSync:
         sender = signer.address()
 
         transaction = self.build_tx(payload, sender)
+        self._apply_fee_payer_address_override(transaction)
 
         if not self._skip_simulate:
             sim_result = self._simulate_transaction(transaction)
@@ -590,6 +609,7 @@ class BaseSDKSync:
                 max_gas_amount=max_gas_amount,
                 gas_unit_price=gas_unit_price,
             )
+            self._apply_fee_payer_address_override(transaction)
 
         sender_authenticator = self._sign_transaction(signer, transaction)
 
@@ -639,6 +659,10 @@ class BaseSDKSync:
             return fee_payer_txn.sign(signer.private_key)
         else:
             return raw_txn.sign(signer.private_key)
+
+    def _apply_fee_payer_address_override(self, transaction: SimpleTransaction) -> None:
+        if self._fee_payer_account is not None:
+            transaction.fee_payer_address = self._fee_payer_account.address()
 
     def _fetch_gas_price_estimation(self) -> int:
         url = f"{self._config.fullnode_url}/estimate_gas_price"

@@ -3,10 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 import httpx
+from aptos_sdk.authenticator import Authenticator, FeePayerAuthenticator
 from aptos_sdk.bcs import Serializer
+from aptos_sdk.transactions import FeePayerRawTransaction, SignedTransaction
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
+    from aptos_sdk.account import Account
     from aptos_sdk.authenticator import AccountAuthenticator
 
     from ._constants import DecibelConfig
@@ -33,9 +36,20 @@ async def submit_fee_paid_transaction(
     transaction: SimpleTransaction,
     sender_authenticator: AccountAuthenticator,
     *,
+    fee_payer_account: Account | None = None,
     client: httpx.AsyncClient | None = None,
     txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
+    if fee_payer_account is not None:
+        return await _submit_via_local_fee_payer(
+            config,
+            transaction,
+            sender_authenticator,
+            fee_payer_account=fee_payer_account,
+            client=client,
+            txn_submit_timeout=txn_submit_timeout,
+        )
+
     if config.gas_station_api_key:
         return await _submit_via_gas_station_api(
             config,
@@ -62,9 +76,20 @@ def submit_fee_paid_transaction_sync(
     transaction: SimpleTransaction,
     sender_authenticator: AccountAuthenticator,
     *,
+    fee_payer_account: Account | None = None,
     client: httpx.Client | None = None,
     txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
+    if fee_payer_account is not None:
+        return _submit_via_local_fee_payer_sync(
+            config,
+            transaction,
+            sender_authenticator,
+            fee_payer_account=fee_payer_account,
+            client=client,
+            txn_submit_timeout=txn_submit_timeout,
+        )
+
     if config.gas_station_api_key:
         return _submit_via_gas_station_api_sync(
             config,
@@ -300,6 +325,129 @@ def _submit_via_legacy_fee_payer_sync(
         gas_unit_price=str(data.get("gas_unit_price", "")),
         expiration_timestamp_secs=str(data.get("expiration_timestamp_secs", "")),
     )
+
+
+async def _submit_via_local_fee_payer(
+    config: DecibelConfig,
+    transaction: SimpleTransaction,
+    sender_authenticator: AccountAuthenticator,
+    *,
+    fee_payer_account: Account,
+    client: httpx.AsyncClient | None = None,
+    txn_submit_timeout: float | None = None,
+) -> PendingTransactionResponse:
+    url = f"{config.fullnode_url}/transactions"
+    headers = {"Content-Type": "application/x.aptos.signed_transaction+bcs"}
+    bcs_bytes = _build_fee_payer_signed_transaction_bytes(
+        transaction,
+        sender_authenticator,
+        fee_payer_account,
+    )
+
+    if client is not None:
+        response = await client.post(
+            url,
+            content=bcs_bytes,
+            headers=headers,
+            timeout=txn_submit_timeout,
+        )
+    else:
+        async with httpx.AsyncClient() as temp_client:
+            response = await temp_client.post(
+                url,
+                content=bcs_bytes,
+                headers=headers,
+                timeout=txn_submit_timeout,
+            )
+
+    if not response.is_success:
+        raise ValueError(
+            f"Local fee payer submission failed: {response.status_code} - {response.text}"
+        )
+
+    data = cast("dict[str, Any]", response.json())
+    raw_txn = transaction.raw_transaction
+    return PendingTransactionResponse(
+        hash=str(data.get("hash", "")),
+        sender=str(raw_txn.sender),
+        sequence_number=str(raw_txn.sequence_number),
+        max_gas_amount=str(raw_txn.max_gas_amount),
+        gas_unit_price=str(raw_txn.gas_unit_price),
+        expiration_timestamp_secs=str(raw_txn.expiration_timestamps_secs),
+    )
+
+
+def _submit_via_local_fee_payer_sync(
+    config: DecibelConfig,
+    transaction: SimpleTransaction,
+    sender_authenticator: AccountAuthenticator,
+    *,
+    fee_payer_account: Account,
+    client: httpx.Client | None = None,
+    txn_submit_timeout: float | None = None,
+) -> PendingTransactionResponse:
+    url = f"{config.fullnode_url}/transactions"
+    headers = {"Content-Type": "application/x.aptos.signed_transaction+bcs"}
+    bcs_bytes = _build_fee_payer_signed_transaction_bytes(
+        transaction,
+        sender_authenticator,
+        fee_payer_account,
+    )
+
+    if client is not None:
+        response = client.post(
+            url,
+            content=bcs_bytes,
+            headers=headers,
+            timeout=txn_submit_timeout,
+        )
+    else:
+        with httpx.Client() as temp_client:
+            response = temp_client.post(
+                url,
+                content=bcs_bytes,
+                headers=headers,
+                timeout=txn_submit_timeout,
+            )
+
+    if not response.is_success:
+        raise ValueError(
+            f"Local fee payer submission failed: {response.status_code} - {response.text}"
+        )
+
+    data = cast("dict[str, Any]", response.json())
+    raw_txn = transaction.raw_transaction
+    return PendingTransactionResponse(
+        hash=str(data.get("hash", "")),
+        sender=str(raw_txn.sender),
+        sequence_number=str(raw_txn.sequence_number),
+        max_gas_amount=str(raw_txn.max_gas_amount),
+        gas_unit_price=str(raw_txn.gas_unit_price),
+        expiration_timestamp_secs=str(raw_txn.expiration_timestamps_secs),
+    )
+
+
+def _build_fee_payer_signed_transaction_bytes(
+    transaction: SimpleTransaction,
+    sender_authenticator: AccountAuthenticator,
+    fee_payer_account: Account,
+) -> bytes:
+    fee_payer_address = transaction.fee_payer_address or fee_payer_account.address()
+    fee_payer_raw_txn = FeePayerRawTransaction(
+        raw_transaction=transaction.raw_transaction,
+        secondary_signers=[],
+        fee_payer=fee_payer_address,
+    )
+    fee_payer_authenticator = fee_payer_raw_txn.sign(fee_payer_account.private_key)
+
+    authenticator = Authenticator(
+        FeePayerAuthenticator(
+            sender=sender_authenticator,
+            secondary_signers=[],
+            fee_payer=(fee_payer_address, fee_payer_authenticator),
+        )
+    )
+    return SignedTransaction(transaction.raw_transaction, authenticator).bytes()
 
 
 def _get_default_gas_station_url(config: DecibelConfig) -> str:
