@@ -119,6 +119,28 @@ async def main():
 asyncio.run(main())
 ```
 
+### Gas Sponsorship Modes
+
+By default, write operations continue to use the existing gas station flow based on
+`config.gas_station_api_key` / `config.gas_station_url`. No configuration changes are required.
+
+To use a local fee payer account instead of gas station signing, pass
+`fee_payer_account` in `BaseSDKOptions`:
+
+```python
+from aptos_sdk.account import Account
+from decibel import BaseSDKOptions, DecibelWriteDex, TESTNET_CONFIG
+
+sender = Account.generate()
+fee_payer = Account.generate()
+
+write = DecibelWriteDex(
+    TESTNET_CONFIG,
+    sender,
+    opts=BaseSDKOptions(fee_payer_account=fee_payer),
+)
+```
+
 ### WebSocket Streaming
 
 ```python
