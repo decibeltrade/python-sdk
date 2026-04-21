@@ -181,6 +181,8 @@ class BaseSDK:
         *,
         txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
+        self._apply_fee_payer_address_override(transaction)
+
         if self._no_fee_payer:
             return await self._submit_direct(transaction, sender_authenticator, txn_submit_timeout)
         return await submit_fee_paid_transaction(
@@ -188,6 +190,7 @@ class BaseSDK:
             transaction,
             sender_authenticator,
             fee_payer_account=self._fee_payer_account,
+            node_api_key=self._node_api_key,
             txn_submit_timeout=txn_submit_timeout,
         )
 
@@ -561,6 +564,8 @@ class BaseSDKSync:
         *,
         txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
+        self._apply_fee_payer_address_override(transaction)
+
         if self._no_fee_payer:
             return self._submit_direct(transaction, sender_authenticator, txn_submit_timeout)
         return submit_fee_paid_transaction_sync(
@@ -568,6 +573,7 @@ class BaseSDKSync:
             transaction,
             sender_authenticator,
             fee_payer_account=self._fee_payer_account,
+            node_api_key=self._node_api_key,
             txn_submit_timeout=txn_submit_timeout,
         )
 

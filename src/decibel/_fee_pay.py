@@ -37,6 +37,7 @@ async def submit_fee_paid_transaction(
     sender_authenticator: AccountAuthenticator,
     *,
     fee_payer_account: Account | None = None,
+    node_api_key: str | None = None,
     client: httpx.AsyncClient | None = None,
     txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
@@ -46,6 +47,7 @@ async def submit_fee_paid_transaction(
             transaction,
             sender_authenticator,
             fee_payer_account=fee_payer_account,
+            node_api_key=node_api_key,
             client=client,
             txn_submit_timeout=txn_submit_timeout,
         )
@@ -77,6 +79,7 @@ def submit_fee_paid_transaction_sync(
     sender_authenticator: AccountAuthenticator,
     *,
     fee_payer_account: Account | None = None,
+    node_api_key: str | None = None,
     client: httpx.Client | None = None,
     txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
@@ -86,6 +89,7 @@ def submit_fee_paid_transaction_sync(
             transaction,
             sender_authenticator,
             fee_payer_account=fee_payer_account,
+            node_api_key=node_api_key,
             client=client,
             txn_submit_timeout=txn_submit_timeout,
         )
@@ -333,11 +337,14 @@ async def _submit_via_local_fee_payer(
     sender_authenticator: AccountAuthenticator,
     *,
     fee_payer_account: Account,
+    node_api_key: str | None = None,
     client: httpx.AsyncClient | None = None,
     txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
     url = f"{config.fullnode_url}/transactions"
     headers = {"Content-Type": "application/x.aptos.signed_transaction+bcs"}
+    if node_api_key:
+        headers["x-api-key"] = node_api_key
     bcs_bytes = _build_fee_payer_signed_transaction_bytes(
         transaction,
         sender_authenticator,
@@ -383,11 +390,14 @@ def _submit_via_local_fee_payer_sync(
     sender_authenticator: AccountAuthenticator,
     *,
     fee_payer_account: Account,
+    node_api_key: str | None = None,
     client: httpx.Client | None = None,
     txn_submit_timeout: float | None = None,
 ) -> PendingTransactionResponse:
     url = f"{config.fullnode_url}/transactions"
     headers = {"Content-Type": "application/x.aptos.signed_transaction+bcs"}
+    if node_api_key:
+        headers["x-api-key"] = node_api_key
     bcs_bytes = _build_fee_payer_signed_transaction_bytes(
         transaction,
         sender_authenticator,
@@ -432,7 +442,13 @@ def _build_fee_payer_signed_transaction_bytes(
     sender_authenticator: AccountAuthenticator,
     fee_payer_account: Account,
 ) -> bytes:
-    fee_payer_address = transaction.fee_payer_address or fee_payer_account.address()
+    fee_payer_address = fee_payer_account.address()
+    if (
+        transaction.fee_payer_address is not None
+        and transaction.fee_payer_address != fee_payer_address
+    ):
+        raise ValueError("transaction.fee_payer_address does not match fee_payer_account")
+
     fee_payer_raw_txn = FeePayerRawTransaction(
         raw_transaction=transaction.raw_transaction,
         secondary_signers=[],

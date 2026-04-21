@@ -164,7 +164,7 @@ async def test_submit_tx_passes_fee_payer_account_to_fee_paid_submitter(
     sdk = BaseSDK(
         TESTNET_CONFIG,
         Account.generate(),
-        BaseSDKOptions(fee_payer_account=fee_payer_account),
+        BaseSDKOptions(fee_payer_account=fee_payer_account, node_api_key="node-key"),
     )
     captured: dict[str, Any] = {}
 
@@ -174,18 +174,20 @@ async def test_submit_tx_passes_fee_payer_account_to_fee_paid_submitter(
         sender_authenticator: Any,
         *,
         fee_payer_account: Account | None = None,
+        node_api_key: str | None = None,
         txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
         captured["config"] = config
         captured["transaction"] = transaction
         captured["sender_authenticator"] = sender_authenticator
         captured["fee_payer_account"] = fee_payer_account
+        captured["node_api_key"] = node_api_key
         captured["txn_submit_timeout"] = txn_submit_timeout
         return _pending_response("0xfee")
 
     monkeypatch.setattr(base_module, "submit_fee_paid_transaction", fake_fee_paid)
 
-    tx = SimpleNamespace()
+    tx = SimpleNamespace(fee_payer_address=AccountAddress.from_str("0x0"))
     sender_authenticator = SimpleNamespace()
     response = await sdk.submit_tx(tx, sender_authenticator, txn_submit_timeout=3.0)
 
@@ -194,7 +196,9 @@ async def test_submit_tx_passes_fee_payer_account_to_fee_paid_submitter(
     assert captured["transaction"] is tx
     assert captured["sender_authenticator"] is sender_authenticator
     assert captured["fee_payer_account"] is fee_payer_account
+    assert captured["node_api_key"] == "node-key"
     assert captured["txn_submit_timeout"] == 3.0
+    assert tx.fee_payer_address == fee_payer_account.address()
 
 
 def test_submit_tx_sync_passes_fee_payer_account_to_fee_paid_submitter(
@@ -204,7 +208,7 @@ def test_submit_tx_sync_passes_fee_payer_account_to_fee_paid_submitter(
     sdk = BaseSDKSync(
         TESTNET_CONFIG,
         Account.generate(),
-        BaseSDKOptionsSync(fee_payer_account=fee_payer_account),
+        BaseSDKOptionsSync(fee_payer_account=fee_payer_account, node_api_key="node-key"),
     )
     captured: dict[str, Any] = {}
 
@@ -214,18 +218,20 @@ def test_submit_tx_sync_passes_fee_payer_account_to_fee_paid_submitter(
         sender_authenticator: Any,
         *,
         fee_payer_account: Account | None = None,
+        node_api_key: str | None = None,
         txn_submit_timeout: float | None = None,
     ) -> PendingTransactionResponse:
         captured["config"] = config
         captured["transaction"] = transaction
         captured["sender_authenticator"] = sender_authenticator
         captured["fee_payer_account"] = fee_payer_account
+        captured["node_api_key"] = node_api_key
         captured["txn_submit_timeout"] = txn_submit_timeout
         return _pending_response("0xsync-fee")
 
     monkeypatch.setattr(base_module, "submit_fee_paid_transaction_sync", fake_fee_paid)
 
-    tx = SimpleNamespace()
+    tx = SimpleNamespace(fee_payer_address=AccountAddress.from_str("0x0"))
     sender_authenticator = SimpleNamespace()
     response = sdk.submit_tx(tx, sender_authenticator, txn_submit_timeout=4.0)
 
@@ -234,7 +240,9 @@ def test_submit_tx_sync_passes_fee_payer_account_to_fee_paid_submitter(
     assert captured["transaction"] is tx
     assert captured["sender_authenticator"] is sender_authenticator
     assert captured["fee_payer_account"] is fee_payer_account
+    assert captured["node_api_key"] == "node-key"
     assert captured["txn_submit_timeout"] == 4.0
+    assert tx.fee_payer_address == fee_payer_account.address()
 
 
 @pytest.mark.asyncio
@@ -495,6 +503,7 @@ async def test_local_fee_payer_async_submits_to_fullnode(monkeypatch: pytest.Mon
         transaction,
         SimpleNamespace(),
         fee_payer_account=fee_payer_account,
+        node_api_key="node-key",
         client=client,
         txn_submit_timeout=1.5,
     )
@@ -510,6 +519,7 @@ async def test_local_fee_payer_async_submits_to_fullnode(monkeypatch: pytest.Mon
     assert call["url"] == f"{TESTNET_CONFIG.fullnode_url}/transactions"
     assert call["content"] == b"signed-bytes"
     assert call["headers"]["Content-Type"] == "application/x.aptos.signed_transaction+bcs"
+    assert call["headers"]["x-api-key"] == "node-key"
     assert call["timeout"] == 1.5
 
 
@@ -539,6 +549,7 @@ def test_local_fee_payer_sync_submits_to_fullnode(monkeypatch: pytest.MonkeyPatc
         transaction,
         SimpleNamespace(),
         fee_payer_account=fee_payer_account,
+        node_api_key="node-key",
         client=client,
         txn_submit_timeout=2.5,
     )
@@ -554,4 +565,20 @@ def test_local_fee_payer_sync_submits_to_fullnode(monkeypatch: pytest.MonkeyPatc
     assert call["url"] == f"{TESTNET_CONFIG.fullnode_url}/transactions"
     assert call["content"] == b"sync-signed-bytes"
     assert call["headers"]["Content-Type"] == "application/x.aptos.signed_transaction+bcs"
+    assert call["headers"]["x-api-key"] == "node-key"
     assert call["timeout"] == 2.5
+
+
+def test_build_fee_payer_signed_transaction_rejects_mismatched_fee_payer_address() -> None:
+    fee_payer_account = Account.generate()
+    transaction = SimpleNamespace(
+        fee_payer_address=AccountAddress.from_str("0x1"),
+        raw_transaction=SimpleNamespace(),
+    )
+
+    with pytest.raises(ValueError, match="does not match"):
+        fee_pay_module._build_fee_payer_signed_transaction_bytes(
+            transaction,
+            sender_authenticator=SimpleNamespace(),
+            fee_payer_account=fee_payer_account,
+        )
