@@ -823,9 +823,9 @@ class TestGenerateRandomReplayProtectionNonce:
         expected = (buf0 << 32) | buf1
         assert result == expected
 
-    def test_typical_run_mostly_returns_int(self) -> None:
-        """Statistically, with 32-bit values, zero is extremely rare."""
-        results = [generate_random_replay_protection_nonce() for _ in range(50)]
-        non_none = [r for r in results if r is not None]
-        # At least 40 out of 50 should be non-None (probability of zero ~1 in 4B)
-        assert len(non_none) >= 40
+    def test_repeated_calls_return_int_when_randbits_is_nonzero(self) -> None:
+        side_effect = list(range(1, 101))
+        with patch("secrets.randbits", side_effect=side_effect):
+            results = [generate_random_replay_protection_nonce() for _ in range(50)]
+        assert all(isinstance(result, int) for result in results)
+        assert all(result is not None for result in results)

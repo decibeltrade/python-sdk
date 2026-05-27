@@ -108,8 +108,21 @@ class TestBaseSDKInit:
         account = MagicMock()
         sdk = BaseSDK(config=test_config, account=account)
         assert isinstance(sdk._http_client, httpx.AsyncClient)
+        assert sdk._owns_http_client is True
         assert sdk._config is test_config
         assert sdk._account is account
+
+    @patch("decibel._base.AbiRegistry")
+    @patch("decibel._base.RestClient")
+    def test_uses_provided_http_client(
+        self, mock_rest: Any, mock_abi: Any, test_config: Any
+    ) -> None:
+        account = MagicMock()
+        provided_client = MagicMock(spec=httpx.AsyncClient)
+        opts = BaseSDKOptions(http_client=provided_client)
+        sdk = BaseSDK(config=test_config, account=account, opts=opts)
+        assert sdk._http_client is provided_client
+        assert sdk._owns_http_client is False
 
     @patch("decibel._base.AbiRegistry")
     @patch("decibel._base.RestClient")
@@ -195,6 +208,17 @@ class TestBaseSDKClose:
         sdk._http_client = AsyncMock()
         await sdk.close()
         sdk._http_client.aclose.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_close_does_not_close_provided_client(
+        self, test_config: Any, mock_account: Any
+    ) -> None:
+        provided_client = AsyncMock(spec=httpx.AsyncClient)
+        opts = BaseSDKOptions(http_client=provided_client)
+        sdk = _make_sdk(test_config, mock_account, opts)
+
+        await sdk.close()
+        provided_client.aclose.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_aenter_returns_self(self, test_config: Any, mock_account: Any) -> None:

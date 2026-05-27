@@ -71,6 +71,7 @@ class BaseSDKOptions:
     node_api_key: str | None = None
     gas_price_manager: GasPriceManager | None = None
     time_delta_ms: int = 0
+    http_client: httpx.AsyncClient | None = None
 
 
 @dataclass
@@ -95,7 +96,6 @@ class BaseSDK:
         self._chain_id = config.chain_id
         self._abi_registry = AbiRegistry(chain_id=config.chain_id)
         self._aptos = RestClient(config.fullnode_url)
-        self._http_client = httpx.AsyncClient(limits=HTTP_LIMITS, timeout=HTTP_TIMEOUT)
 
         opts = opts or BaseSDKOptions()
         self._skip_simulate = opts.skip_simulate
@@ -103,6 +103,10 @@ class BaseSDK:
         self._node_api_key = opts.node_api_key
         self._gas_price_manager = opts.gas_price_manager
         self._time_delta_ms = opts.time_delta_ms
+        self._http_client = opts.http_client or httpx.AsyncClient(
+            limits=HTTP_LIMITS, timeout=HTTP_TIMEOUT
+        )
+        self._owns_http_client = opts.http_client is None
 
         if config.chain_id is None:
             logger.warning(
@@ -139,7 +143,8 @@ class BaseSDK:
         self._time_delta_ms = value
 
     async def close(self) -> None:
-        await self._http_client.aclose()
+        if self._owns_http_client:
+            await self._http_client.aclose()
 
     async def __aenter__(self) -> BaseSDK:
         return self
