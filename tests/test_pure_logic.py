@@ -521,28 +521,22 @@ class TestWaitForTransactionRetry:
 
     async def test_retries_on_connect_timeout_then_succeeds(self, base_sdk) -> None:
         """SHALL retry on ConnectTimeout and succeed when tx confirms."""
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import patch
 
         call_count = 0
 
-        async def mock_get(url, headers=None):
+        async def mock_get(url, headers=None, **kwargs):
             nonlocal call_count
             call_count += 1
             if call_count <= 2:
                 raise httpx.ConnectTimeout("connection timed out")
-            # Third call succeeds
-            resp = httpx.Response(
+            return httpx.Response(
                 200,
                 json={"success": True, "hash": "0xabc", "type": "user_transaction"},
             )
-            return resp
 
-        mock_client = AsyncMock()
-        mock_client.get = mock_get
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch.object(base_sdk, "_http_client") as mock_http:
+            mock_http.get = mock_get
             result = await base_sdk._wait_for_transaction("0xabc")
 
         assert result["success"] is True
@@ -550,27 +544,22 @@ class TestWaitForTransactionRetry:
 
     async def test_retries_on_read_timeout(self, base_sdk) -> None:
         """SHALL retry on ReadTimeout."""
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import patch
 
         call_count = 0
 
-        async def mock_get(url, headers=None):
+        async def mock_get(url, headers=None, **kwargs):
             nonlocal call_count
             call_count += 1
             if call_count == 1:
                 raise httpx.ReadTimeout("read timed out")
-            resp = httpx.Response(
+            return httpx.Response(
                 200,
                 json={"success": True, "hash": "0xabc", "type": "user_transaction"},
             )
-            return resp
 
-        mock_client = AsyncMock()
-        mock_client.get = mock_get
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch.object(base_sdk, "_http_client") as mock_http:
+            mock_http.get = mock_get
             result = await base_sdk._wait_for_transaction("0xabc")
 
         assert result["success"] is True
@@ -578,47 +567,38 @@ class TestWaitForTransactionRetry:
 
     async def test_retries_on_connect_error(self, base_sdk) -> None:
         """SHALL retry on ConnectError."""
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import patch
 
         call_count = 0
 
-        async def mock_get(url, headers=None):
+        async def mock_get(url, headers=None, **kwargs):
             nonlocal call_count
             call_count += 1
             if call_count == 1:
                 raise httpx.ConnectError("connection refused")
-            resp = httpx.Response(
+            return httpx.Response(
                 200,
                 json={"success": True, "hash": "0xabc", "type": "user_transaction"},
             )
-            return resp
 
-        mock_client = AsyncMock()
-        mock_client.get = mock_get
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch.object(base_sdk, "_http_client") as mock_http:
+            mock_http.get = mock_get
             result = await base_sdk._wait_for_transaction("0xabc")
 
         assert result["success"] is True
 
     async def test_timeout_after_retries_exhausted(self, base_sdk) -> None:
         """SHALL raise TxnConfirmError if timeout exceeded during retries."""
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import patch
 
         from decibel._exceptions import TxnConfirmError
 
-        async def mock_get(url, headers=None):
+        async def mock_get(url, headers=None, **kwargs):
             raise httpx.ConnectTimeout("always fails")
 
-        mock_client = AsyncMock()
-        mock_client.get = mock_get
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
         with (
-            patch("httpx.AsyncClient", return_value=mock_client),
+            patch.object(base_sdk, "_http_client") as mock_http,
             pytest.raises(TxnConfirmError, match="did not confirm"),
         ):
+            mock_http.get = mock_get
             await base_sdk._wait_for_transaction("0xabc", txn_confirm_timeout=0.01)

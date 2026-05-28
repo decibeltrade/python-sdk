@@ -539,6 +539,7 @@ class TestGasPriceManagerAsync:
         ctx.get.assert_awaited_once_with(
             f"{config.fullnode_url}/estimate_gas_price",
             headers={"x-api-key": "secret-key"},
+            timeout=5.0,
         )
 
 
@@ -625,4 +626,5 @@ class TestGasPriceManagerSync:
         ctx.get.assert_called_once_with(
             f"{config.fullnode_url}/estimate_gas_price",
             headers={"x-api-key": "secret-key"},
+            timeout=5.0,
         )

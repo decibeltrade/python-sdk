@@ -94,7 +94,7 @@ The SDK SHALL implement automatic reconnection with:
 ```json
 {
   "method": "subscribe",
-  "topic": "user_open_orders:0x1234..."
+  "topic": "account_open_orders:0x1234..."
 }
 ```
 
@@ -103,7 +103,7 @@ The SDK SHALL implement automatic reconnection with:
 ```json
 {
   "success": true,
-  "message": "Subscribed to user_open_orders:0x1234..."
+  "message": "Subscribed to account_open_orders:0x1234..."
 }
 ```
 
@@ -128,7 +128,7 @@ Other error messages:
 ```json
 {
   "method": "unsubscribe",
-  "topic": "user_open_orders:0x1234..."
+  "topic": "account_open_orders:0x1234..."
 }
 ```
 
@@ -137,7 +137,7 @@ Other error messages:
 ```json
 {
   "success": true,
-  "message": "Unsubscribed from user_open_orders:0x1234..."
+  "message": "Unsubscribed from account_open_orders:0x1234..."
 }
 ```
 
@@ -147,7 +147,7 @@ All data messages SHALL include a `topic` field matching the subscribed topic st
 
 ```json
 {
-  "topic": "user_open_orders:0x1234...",
+  "topic": "account_open_orders:0x1234...",
   "orders": [ ... ]
 }
 ```
@@ -406,7 +406,7 @@ If aggregation level is omitted, defaults to `1`.
 **Message Schema:**
 ```json
 {
-  "topic": "user_positions:0x1234...",
+  "topic": "account_positions:0x1234...",
   "positions": [
     {
       "market": "0x...",
@@ -455,7 +455,7 @@ If aggregation level is omitted, defaults to `1`.
 **Message Schema:**
 ```json
 {
-  "topic": "user_open_orders:0x1234...",
+  "topic": "account_open_orders:0x1234...",
   "orders": [
     {
       "parent": "0x...",
