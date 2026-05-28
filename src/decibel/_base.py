@@ -334,6 +334,7 @@ class BaseSDK:
             content=bcs_bytes,
             headers=headers,
             params={"estimate_max_gas_amount": "true", "estimate_gas_unit_price": "true"},
+            timeout=5.0,
         )
 
         if not response.is_success:
@@ -715,6 +716,7 @@ class BaseSDKSync:
             content=bcs_bytes,
             headers=headers,
             params={"estimate_max_gas_amount": "true", "estimate_gas_unit_price": "true"},
+            timeout=5.0,
         )
         if not response.is_success:
             raise ValueError(
