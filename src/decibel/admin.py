@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-import httpx
 from aptos_sdk.account_address import AccountAddress
 
 from ._base import BaseSDK, BaseSDKSync
@@ -850,19 +849,13 @@ class DecibelAdminDexSync(BaseSDKSync):
     ) -> int:
         addr_str = str(addr) if isinstance(addr, AccountAddress) else addr
 
-        def make_request(client: httpx.Client) -> int:
-            response = client.post(
-                f"{self._config.fullnode_url}/view",
-                json={
-                    "function": "0x1::primary_fungible_store::balance",
-                    "type_arguments": ["0x1::fungible_asset::Metadata"],
-                    "arguments": [addr_str, self._config.deployment.usdc],
-                },
-            )
-            data = cast("list[Any]", response.json())
-            return int(data[0])
-
-        if self._http_client is not None:
-            return make_request(self._http_client)
-        with httpx.Client() as client:
-            return make_request(client)
+        response = self._http_client.post(
+            f"{self._config.fullnode_url}/view",
+            json={
+                "function": "0x1::primary_fungible_store::balance",
+                "type_arguments": ["0x1::fungible_asset::Metadata"],
+                "arguments": [addr_str, self._config.deployment.usdc],
+            },
+        )
+        data = cast("list[Any]", response.json())
+        return int(data[0])

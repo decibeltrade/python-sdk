@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+import httpx
 from aptos_sdk.account_address import AccountAddress
 
 __all__ = [
@@ -13,6 +14,8 @@ __all__ = [
     "DEFAULT_COMPAT_VERSION",
     "DEFAULT_TXN_CONFIRM_TIMEOUT",
     "DEFAULT_TXN_SUBMIT_TIMEOUT",
+    "HTTP_LIMITS",
+    "HTTP_TIMEOUT",
     "MAINNET_CONFIG",
     "TESTNET_CONFIG",
     "LOCAL_CONFIG",
@@ -30,6 +33,10 @@ DEFAULT_TXN_CONFIRM_TIMEOUT = 30.0
 # Configurable timeout for transaction submission
 # Default is 10 seconds (should be shorter than confirmation timeout)
 DEFAULT_TXN_SUBMIT_TIMEOUT = 10.0
+
+# Shared HTTP client connection pool limits
+HTTP_LIMITS = httpx.Limits(max_connections=20, max_keepalive_connections=10)
+HTTP_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 
 
 class Network(StrEnum):

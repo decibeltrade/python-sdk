@@ -34,6 +34,8 @@ class GasPriceManagerOptions:
     node_api_key: str | None = None
     multiplier: float = 2.0
     refresh_interval_seconds: float = 60.0
+    http_client: httpx.AsyncClient | None = None
+    http_client_sync: httpx.Client | None = None
 
 
 def _build_auth_headers(api_key: str | None) -> dict[str, str]:
@@ -56,6 +58,7 @@ class GasPriceManager:
         self._is_initialized = False
         self._refresh_interval_seconds = self._opts.refresh_interval_seconds
         self._multiplier = self._opts.multiplier
+        self._http_client = self._opts.http_client
 
     @property
     def gas_price(self) -> int | None:
@@ -99,8 +102,11 @@ class GasPriceManager:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
         headers = _build_auth_headers(self._opts.node_api_key)
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers=headers)
+        if self._http_client is not None:
+            response = await self._http_client.get(url, headers=headers, timeout=5.0)
+        else:
+            async with httpx.AsyncClient() as temp_client:
+                response = await temp_client.get(url, headers=headers, timeout=5.0)
 
         if not response.is_success:
             raise ValueError(f"Failed to fetch gas price: {response.status_code} - {response.text}")
@@ -168,6 +174,7 @@ class GasPriceManagerSync:
         self._is_initialized = False
         self._refresh_interval_seconds = self._opts.refresh_interval_seconds
         self._multiplier = self._opts.multiplier
+        self._http_client = self._opts.http_client_sync
 
     @property
     def gas_price(self) -> int | None:
@@ -214,8 +221,11 @@ class GasPriceManagerSync:
         url = f"{self._config.fullnode_url}/estimate_gas_price"
         headers = _build_auth_headers(self._opts.node_api_key)
 
-        with httpx.Client() as client:
-            response = client.get(url, headers=headers)
+        if self._http_client is not None:
+            response = self._http_client.get(url, headers=headers, timeout=5.0)
+        else:
+            with httpx.Client() as temp_client:
+                response = temp_client.get(url, headers=headers, timeout=5.0)
 
         if not response.is_success:
             raise ValueError(f"Failed to fetch gas price: {response.status_code} - {response.text}")

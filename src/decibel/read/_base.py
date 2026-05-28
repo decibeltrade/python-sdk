@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from pydantic import BaseModel
@@ -15,6 +15,7 @@ from .._utils import (
 )
 
 if TYPE_CHECKING:
+    import httpx
     from aptos_sdk.async_client import RestClient
 
     from .._constants import DecibelConfig
@@ -34,6 +35,8 @@ class ReaderDeps:
     ws: DecibelWsSubscription
     aptos: RestClient
     api_key: str | None = None
+    http_client: httpx.AsyncClient | None = field(default=None, repr=False)
+    http_client_sync: httpx.Client | None = field(default=None, repr=False)
 
 
 class BaseReader:
@@ -64,6 +67,7 @@ class BaseReader:
             url=url,
             params=params,
             api_key=self._deps.api_key,
+            client=self._deps.http_client,
         )
 
     async def post_request(
@@ -78,6 +82,7 @@ class BaseReader:
             url=url,
             body=body,
             api_key=self._deps.api_key,
+            client=self._deps.http_client,
         )
 
     async def patch_request(
@@ -92,6 +97,7 @@ class BaseReader:
             url=url,
             body=body,
             api_key=self._deps.api_key,
+            client=self._deps.http_client,
         )
 
     def get_request_sync(
@@ -106,6 +112,7 @@ class BaseReader:
             url=url,
             params=params,
             api_key=self._deps.api_key,
+            client=self._deps.http_client_sync,
         )
 
     def post_request_sync(
@@ -120,6 +127,7 @@ class BaseReader:
             url=url,
             body=body,
             api_key=self._deps.api_key,
+            client=self._deps.http_client_sync,
         )
 
     def patch_request_sync(
@@ -134,4 +142,5 @@ class BaseReader:
             url=url,
             body=body,
             api_key=self._deps.api_key,
+            client=self._deps.http_client_sync,
         )

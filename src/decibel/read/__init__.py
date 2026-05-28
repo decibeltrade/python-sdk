@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import httpx
 from aptos_sdk.async_client import RestClient
 
+from .._constants import HTTP_LIMITS, HTTP_TIMEOUT
 from ._account_overview import (
     AccountOverview,
     AccountOverviewReader,
@@ -163,7 +165,14 @@ class DecibelReadDex:
     ) -> None:
         aptos = RestClient(config.fullnode_url)
         ws = DecibelWsSubscription(config, api_key, on_ws_error)
-        deps = ReaderDeps(config=config, ws=ws, aptos=aptos, api_key=api_key)
+        self._http_client = httpx.AsyncClient(limits=HTTP_LIMITS, timeout=HTTP_TIMEOUT)
+        deps = ReaderDeps(
+            config=config,
+            ws=ws,
+            aptos=aptos,
+            api_key=api_key,
+            http_client=self._http_client,
+        )
 
         self.ws = ws
         self.account_overview = AccountOverviewReader(deps)
@@ -189,6 +198,23 @@ class DecibelReadDex:
         self.user_notifications = UserNotificationsReader(deps)
         self.vaults = VaultsReader(deps)
         self.trading_points = TradingPointsReader(deps)
+
+    async def close(self) -> None:
+        try:
+            await self.ws.close()
+        finally:
+            await self._http_client.aclose()
+
+    async def __aenter__(self) -> DecibelReadDex:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
+        await self.close()
 
 
 __all__ = [
