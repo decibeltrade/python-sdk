@@ -58,18 +58,21 @@ class DecibelWsSubscription:
         except (json.JSONDecodeError, TypeError) as e:
             raise ValueError(f"Unhandled WebSocket message: failed to parse JSON: {data}") from e
 
-        if (
-            isinstance(json_data, dict)
-            and "topic" in json_data
-            and isinstance(json_data["topic"], str)
-        ):
-            # Filter out response messages (they have a "success" field; data payloads do not)
-            if "success" in json_data:
-                return None
-            topic: str = json_data["topic"]
-            json_dict = cast("dict[str, Any]", json_data)
+        if not isinstance(json_data, dict):
+            raise ValueError(f"Unhandled WebSocket message: expected dict, got: {data}")
+
+        json_dict = cast("dict[str, Any]", json_data)
+
+        # Subscribe/unsubscribe response messages ({"success": true/false, "message": "..."})
+        # These don't have a topic field and are not data messages — silently ignore them.
+        if "success" in json_dict:
+            return None
+
+        if "topic" in json_dict and isinstance(json_dict["topic"], str):
+            topic: str = json_dict["topic"]
             rest: dict[str, Any] = {k: v for k, v in json_dict.items() if k != "topic"}
             return (topic, rest)
+
         raise ValueError(f"Unhandled WebSocket message: missing topic field: {data}")
 
     async def _open(self) -> None:

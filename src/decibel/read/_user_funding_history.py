@@ -26,7 +26,7 @@ class UserFunding(BaseModel):
 
 class UserFundingHistoryResponse(BaseModel):
     items: list[UserFunding]
-    total_count: int
+    total_count: int | None = None
 
 
 class UserFundingHistoryReader(BaseReader):

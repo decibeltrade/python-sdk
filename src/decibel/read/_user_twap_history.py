@@ -13,7 +13,7 @@ __all__ = [
 
 class UserTwapHistoryResponse(BaseModel):
     items: list[UserActiveTwap]
-    total_count: int
+    total_count: int | None = None
 
 
 class UserTwapHistoryReader(BaseReader):
