@@ -149,6 +149,7 @@ class DecibelWriteDex(BaseSDK):
         )
 
     async def admin_create_subaccount(self, owner_address: str) -> dict[str, Any]:
+        """Create a new subaccount on behalf of ``owner_address`` (admin action)."""
         pkg = self._config.deployment.package
         return await self._send_tx(
             InputEntryFunctionData(
@@ -212,6 +213,7 @@ class DecibelWriteDex(BaseSDK):
         txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
+        """Withdraw a non-collateral asset (``asset_addr``) from a subaccount."""
         pkg = self._config.deployment.package
 
         async def _send(addr: str) -> dict[str, Any]:
@@ -484,6 +486,10 @@ class DecibelWriteDex(BaseSDK):
         txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
+        """Replace a resting order's price/size/side/TIF and optional TP/SL.
+
+        Wraps the ``update_order_to_subaccount`` entry function.
+        """
         pkg = self._config.deployment.package
 
         async def _send(addr: str) -> dict[str, Any]:
@@ -1172,6 +1178,7 @@ class DecibelWriteDex(BaseSDK):
         return await self.send_subaccount_tx(_send, subaccount_addr)
 
     async def claim_campaign_reward(self, campaign_id: int) -> dict[str, Any]:
+        """Claim the reward for a campaign by id (``campaign_manager::claim_by_id``)."""
         campaign_pkg = self._config.deployment.campaign_package
         return await self._send_tx(
             InputEntryFunctionData(
@@ -1277,6 +1284,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         )
 
     def admin_create_subaccount(self, owner_address: str) -> dict[str, Any]:
+        """Create a new subaccount on behalf of ``owner_address`` (admin action)."""
         pkg = self._config.deployment.package
         return self._send_tx(
             InputEntryFunctionData(
@@ -1340,6 +1348,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
+        """Withdraw a non-collateral asset (``asset_addr``) from a subaccount."""
         pkg = self._config.deployment.package
 
         def _send(addr: str) -> dict[str, Any]:
@@ -1612,6 +1621,10 @@ class DecibelWriteDexSync(BaseSDKSync):
         txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
+        """Replace a resting order's price/size/side/TIF and optional TP/SL.
+
+        Wraps the ``update_order_to_subaccount`` entry function.
+        """
         pkg = self._config.deployment.package
 
         def _send(addr: str) -> dict[str, Any]:
@@ -2296,6 +2309,7 @@ class DecibelWriteDexSync(BaseSDKSync):
         return self.send_subaccount_tx(_send, subaccount_addr)
 
     def claim_campaign_reward(self, campaign_id: int) -> dict[str, Any]:
+        """Claim the reward for a campaign by id (``campaign_manager::claim_by_id``)."""
         campaign_pkg = self._config.deployment.campaign_package
         return self._send_tx(
             InputEntryFunctionData(

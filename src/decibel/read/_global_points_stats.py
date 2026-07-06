@@ -18,7 +18,13 @@ class GlobalPointsStats(BaseModel):
 
 
 class GlobalPointsStatsReader(BaseReader):
+    """Read protocol-wide points statistics."""
+
     async def get(self) -> GlobalPointsStats:
+        """Return global points stats (total users, total amps distributed).
+
+        GET ``/api/v1/points/global``.
+        """
         response, _, _ = await self.get_request(
             model=GlobalPointsStats,
             url=f"{self.config.trading_http_url}/api/v1/points/global",

@@ -169,6 +169,13 @@ def merge_withdraw_queue_entries(
 
 
 class WithdrawQueueReader(BaseReader):
+    """Read withdrawal-queue entries via the indexed HTTP/WS API or on-chain view.
+
+    Three data paths: ``get_by_addr`` / ``subscribe_by_addr`` (indexed API,
+    primary source) and ``get_pending_withdrawals`` (on-chain RPC view,
+    liveness-check fallback in raw chain units).
+    """
+
     async def get_by_addr(
         self,
         *,
@@ -177,6 +184,13 @@ class WithdrawQueueReader(BaseReader):
         limit: int | None = None,
         offset: int | None = None,
     ) -> PaginatedResponse[WithdrawQueueEntry]:
+        """Return withdrawal-queue entries for an account from the indexed API.
+
+        GET ``/api/v1/withdraw_queue``. Use ``request_id`` as the stable key to
+        reconcile entries with WS updates. Without a ``status`` filter the
+        response may contain multiple rows per ``request_id`` (one per state
+        transition); dedupe by keeping the highest ``transaction_version``.
+        """
         params: dict[str, str] = {"account": sub_addr}
         if limit is not None:
             params["limit"] = str(limit)
@@ -198,6 +212,13 @@ class WithdrawQueueReader(BaseReader):
             Callable[[WithdrawQueueUpdate], None] | Callable[[WithdrawQueueUpdate], Awaitable[None]]
         ),
     ) -> Unsubscribe:
+        """Subscribe to real-time withdrawal-queue deltas for a user address.
+
+        Streaming-only (no initial snapshot): subscribe first, then seed via
+        ``get_by_addr`` and combine with :func:`merge_withdraw_queue_entries`.
+        Each message carries incremental deltas keyed by ``request_id``. Returns
+        an unsubscribe callable.
+        """
         topic = f"withdraw_queue:{sub_addr}"
         return self.ws.subscribe(topic, WithdrawQueueUpdate, on_data)
 

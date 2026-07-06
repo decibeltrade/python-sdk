@@ -107,7 +107,13 @@ class _ActiveCampaigns(RootModel[list[CampaignMetadataHttp]]):
 
 
 class CampaignsReader(BaseReader):
+    """Read reward-campaign metadata and per-account campaign summaries."""
+
     async def get_active(self) -> list[CampaignMetadataHttp]:
+        """Return all currently active reward campaigns.
+
+        GET ``/api/v1/campaigns/active``.
+        """
         response, _, _ = await self.get_request(
             model=_ActiveCampaigns,
             url=f"{self.config.trading_http_url}/api/v1/campaigns/active",
@@ -121,6 +127,11 @@ class CampaignsReader(BaseReader):
         limit: int | None = None,
         offset: int | None = None,
     ) -> CampaignSummary:
+        """Return an account's campaign earnings summary and claim history.
+
+        GET ``/api/v1/campaigns/account``. ``limit``/``offset`` page the
+        embedded claims list.
+        """
         params: dict[str, str] = {"account": account_address}
         if limit is not None:
             params["limit"] = str(limit)

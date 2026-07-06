@@ -68,7 +68,16 @@ class UserFees(BaseModel):
 
 
 class UserFeesReader(BaseReader):
+    """Read a subaccount's effective fee rates and the full fee schedule."""
+
     async def get_by_addr(self, *, sub_addr: str) -> UserFees:
+        """Return the user's fee rates, current tier, and full fee schedule.
+
+        GET ``/api/v1/user_fee_rates``. Includes effective maker/taker rates,
+        the current fee tier (from the on-chain fee window), all VIP tiers, and
+        the daily volume history for that window. Rates are decimals
+        (e.g. ``0.000340`` = 0.034%).
+        """
         response, _, _ = await self.get_request(
             model=UserFees,
             url=f"{self.config.trading_http_url}/api/v1/user_fee_rates",

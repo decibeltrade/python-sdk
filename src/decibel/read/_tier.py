@@ -30,7 +30,13 @@ class TierInfo(BaseModel):
 
 
 class TierReader(BaseReader):
+    """Read percentile-based tier info and progress for an owner."""
+
     async def get_by_owner(self, *, owner_addr: str) -> TierInfo:
+        """Return tier info for an owner with progress toward each tier.
+
+        GET ``/api/v1/points/tier``.
+        """
         response, _, _ = await self.get_request(
             model=TierInfo,
             url=f"{self.config.trading_http_url}/api/v1/points/tier",

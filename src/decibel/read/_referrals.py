@@ -136,7 +136,13 @@ class _UserReferralsResponse(RootModel[list[UserReferral]]):
 
 
 class ReferralsReader(BaseReader):
+    """Read referral codes, account referrals, and affiliate stats/earnings."""
+
     async def validate_code(self, code: str) -> ReferralCodeValidation:
+        """Validate a referral code (existence and active status).
+
+        GET ``/api/v1/referrals/code/{code}``.
+        """
         response, _, _ = await self.get_request(
             model=ReferralCodeValidation,
             url=f"{self.config.trading_http_url}/api/v1/referrals/code/{quote(code)}",
@@ -144,6 +150,10 @@ class ReferralsReader(BaseReader):
         return response
 
     async def get_account_referral(self, account: str) -> AccountReferral:
+        """Return referral information for a specific account.
+
+        GET ``/api/v1/referrals/account/{account}``.
+        """
         response, _, _ = await self.get_request(
             model=AccountReferral,
             url=f"{self.config.trading_http_url}/api/v1/referrals/account/{account}",
@@ -151,6 +161,10 @@ class ReferralsReader(BaseReader):
         return response
 
     async def redeem_code(self, *, referral_code: str, account: str) -> RedeemReferralResponse:
+        """Redeem a referral code for an account.
+
+        POST ``/api/v1/referrals/redeem``.
+        """
         response, _, _ = await self.post_request(
             model=RedeemReferralResponse,
             url=f"{self.config.trading_http_url}/api/v1/referrals/redeem",
@@ -159,6 +173,10 @@ class ReferralsReader(BaseReader):
         return response
 
     async def get_referrer_stats(self, account: str) -> ReferrerStats:
+        """Return aggregate referral statistics for a referrer.
+
+        GET ``/api/v1/referrals/stats/{account}``.
+        """
         response, _, _ = await self.get_request(
             model=ReferrerStats,
             url=f"{self.config.trading_http_url}/api/v1/referrals/stats/{account}",
@@ -172,6 +190,10 @@ class ReferralsReader(BaseReader):
         limit: int | None = None,
         offset: int | None = None,
     ) -> list[UserReferral]:
+        """Return the (paginated) list of users referred by a referrer.
+
+        GET ``/api/v1/referrals/users``.
+        """
         params: dict[str, str] = {"referrer_account": referrer_account}
         if limit is not None:
             params["limit"] = str(limit)
@@ -185,6 +207,10 @@ class ReferralsReader(BaseReader):
         return response.root
 
     async def get_affiliate_codes(self, account: str) -> AffiliateCodesResponse:
+        """Return all referral codes owned by an account with per-code usage stats.
+
+        GET ``/api/v1/affiliates/codes/{account}``.
+        """
         response, _, _ = await self.get_request(
             model=AffiliateCodesResponse,
             url=f"{self.config.trading_http_url}/api/v1/affiliates/codes/{account}",
@@ -192,6 +218,10 @@ class ReferralsReader(BaseReader):
         return response
 
     async def get_affiliate_earnings(self, account: str) -> AffiliateEarningsResponse:
+        """Return the affiliate earnings breakdown and referred users for an account.
+
+        GET ``/api/v1/affiliates/earnings/{account}``.
+        """
         response, _, _ = await self.get_request(
             model=AffiliateEarningsResponse,
             url=f"{self.config.trading_http_url}/api/v1/affiliates/earnings/{account}",

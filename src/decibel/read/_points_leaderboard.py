@@ -32,6 +32,8 @@ class PointsLeaderboardItem(BaseModel):
 
 
 class PointsLeaderboardReader(BaseReader):
+    """Read the points (Hz/Amps) leaderboard rankings."""
+
     async def get_points_leaderboard(
         self,
         *,
@@ -42,6 +44,11 @@ class PointsLeaderboardReader(BaseReader):
         sort_dir: Literal["ASC", "DESC"] | None = None,
         tier: PointsLeaderboardTierFilter | None = None,
     ) -> PaginatedResponse[PointsLeaderboardItem]:
+        """Return a paginated points leaderboard (Hz/Amps rankings).
+
+        GET ``/api/v1/points_leaderboard``. Supports paging, free-text search,
+        sort key/direction, and an optional ``tier`` filter.
+        """
         params: dict[str, str] = {}
         if limit is not None:
             params["limit"] = str(limit)

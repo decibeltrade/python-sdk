@@ -23,7 +23,13 @@ class AccountStreaks(BaseModel):
 
 
 class StreaksReader(BaseReader):
+    """Read trading-streak data (qualifying dates, grace days) for an owner."""
+
     async def get_by_owner(self, *, owner_addr: str) -> AccountStreaks:
+        """Return streak data for an owner, including qualifying dates and grace days.
+
+        GET ``/api/v1/streaks/account``.
+        """
         response, _, _ = await self.get_request(
             model=AccountStreaks,
             url=f"{self.config.trading_http_url}/api/v1/streaks/account",

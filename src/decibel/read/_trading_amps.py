@@ -27,6 +27,8 @@ class OwnerTradingAmps(BaseModel):
 
 
 class TradingAmpsReader(BaseReader):
+    """Read aggregated trading Hz (Amps) for an owner across subaccounts."""
+
     async def get_by_owner(
         self,
         *,
@@ -34,6 +36,11 @@ class TradingAmpsReader(BaseReader):
         season: str | None = None,
         days: int | None = None,
     ) -> OwnerTradingAmps:
+        """Return aggregated trading Hz (Amps) for an owner with a per-subaccount breakdown.
+
+        GET ``/api/v1/points/trading/amps``. ``season`` filters to a single
+        season; ``days`` looks back N days (omit for lifetime totals).
+        """
         params: dict[str, str] = {"owner": owner_addr}
         if season is not None:
             params["season"] = season

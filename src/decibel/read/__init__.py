@@ -291,11 +291,13 @@ class DecibelReadDex:
             return False
 
     async def collateral_balance_decimals(self) -> int:
+        """Return the on-chain decimal precision of the collateral balance."""
         pkg = self._config.deployment.package
         result = await self._view(f"{pkg}::perp_engine::collateral_balance_decimals", [], [])
         return int(result[0])
 
     async def usdc_decimals(self) -> int:
+        """Return the USDC fungible-asset decimals (cached after the first call)."""
         if self._usdc_decimals_cache is not None:
             return self._usdc_decimals_cache
         result = await self._view(
@@ -307,6 +309,7 @@ class DecibelReadDex:
         return self._usdc_decimals_cache
 
     async def usdc_balance(self, addr: str | AccountAddress) -> float:
+        """Return an address's USDC balance in human-readable units."""
         usdc_decimals = await self.usdc_decimals()
         result = await self._view(
             "0x1::primary_fungible_store::balance",
@@ -321,6 +324,7 @@ class DecibelReadDex:
         token_addr: str | AccountAddress,
         token_decimals: int,
     ) -> float:
+        """Return an address's balance of a fungible asset in human-readable units."""
         result = await self._view(
             "0x1::primary_fungible_store::balance",
             ["0x1::fungible_asset::Metadata"],
