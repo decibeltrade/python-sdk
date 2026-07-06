@@ -24,6 +24,7 @@ __all__ = [
     "get_usdc_address",
     "get_testc_address",
     "get_perp_engine_global_address",
+    "get_campaign_package",
 ]
 
 # Configurable timeout for transaction confirmation
@@ -55,6 +56,9 @@ class Deployment:
     usdc: str
     testc: str
     perp_engine_global: str
+    # Package hosting the campaign_manager module (rewards). Only deployed on
+    # testnet/mainnet; empty string on networks where campaigns are unavailable.
+    campaign_package: str = ""
 
 
 @dataclass(frozen=True)
@@ -88,26 +92,43 @@ def get_perp_engine_global_address(package: str) -> str:
     return str(AccountAddress.for_named_object(creator, b"GlobalPerpEngine"))
 
 
-def _create_deployment(package: str) -> Deployment:
-    return Deployment(
-        package=package,
-        usdc=get_usdc_address(package),
-        testc=get_testc_address(package),
-        perp_engine_global=get_perp_engine_global_address(package),
-    )
-
-
 _MAINNET_PACKAGE = "0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06"
 _MAINNET_USDC = "0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b"
 _TESTNET_PACKAGE = "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f"
 _LOCAL_PACKAGE = "0xb8a5788314451ce4d2fbbad32e1bad88d4184b73943b7fe5166eab93cf1a5a95"
 _DOCKER_PACKAGE = "0xb8a5788314451ce4d2fbbad32e1bad88d4184b73943b7fe5166eab93cf1a5a95"
 
+# campaign_manager package addresses (hosts the rewards module). These are fixed
+# per network and are not derived from the DEX package address.
+_CAMPAIGN_TESTNET_PACKAGE = "0x6c8e3171c638045f765e1d66e8e71e819eaf0afa54d1914db3c37f3b02a9c5b3"
+_CAMPAIGN_MAINNET_PACKAGE = "0x7dd60d4445490318a073a600d6109ff587d21e634a22ea08a1b154cc591b3cf4"
+
+
+def get_campaign_package(package: str) -> str:
+    """Return the campaign_manager package for a DEX package, or "" if none."""
+    if package == _TESTNET_PACKAGE:
+        return _CAMPAIGN_TESTNET_PACKAGE
+    if package == _MAINNET_PACKAGE:
+        return _CAMPAIGN_MAINNET_PACKAGE
+    return ""
+
+
+def _create_deployment(package: str) -> Deployment:
+    return Deployment(
+        package=package,
+        usdc=get_usdc_address(package),
+        testc=get_testc_address(package),
+        perp_engine_global=get_perp_engine_global_address(package),
+        campaign_package=get_campaign_package(package),
+    )
+
+
 MAINNET_DEPLOYMENT = Deployment(
     package=_MAINNET_PACKAGE,
     usdc=_MAINNET_USDC,
     testc=get_testc_address(_MAINNET_PACKAGE),
     perp_engine_global=get_perp_engine_global_address(_MAINNET_PACKAGE),
+    campaign_package=get_campaign_package(_MAINNET_PACKAGE),
 )
 
 MAINNET_CONFIG = DecibelConfig(

@@ -148,6 +148,16 @@ class DecibelWriteDex(BaseSDK):
             )
         )
 
+    async def admin_create_subaccount(self, owner_address: str) -> dict[str, Any]:
+        pkg = self._config.deployment.package
+        return await self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::dex_accounts_entry::admin_create_new_subaccount",
+                type_arguments=[],
+                function_arguments=[owner_address],
+            )
+        )
+
     async def deposit(
         self,
         amount: int,
@@ -187,6 +197,29 @@ class DecibelWriteDex(BaseSDK):
                     function=f"{pkg}::dex_accounts_entry::withdraw_from_subaccount",
                     type_arguments=[],
                     function_arguments=[addr, usdc, amount],
+                ),
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def withdraw_non_collateral(
+        self,
+        asset_addr: str,
+        amount: int,
+        subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_entry::withdraw_from_non_collateral",
+                    type_arguments=[],
+                    function_arguments=[addr, asset_addr, amount],
                 ),
                 txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
@@ -424,6 +457,56 @@ class DecibelWriteDex(BaseSDK):
                     function=f"{pkg}::dex_accounts_entry::cancel_order_to_subaccount",
                     type_arguments=[],
                     function_arguments=[addr, int(order_id), resolved_market_addr],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def update_order(
+        self,
+        *,
+        order_id: int | str,
+        market_addr: str,
+        price: int | float,
+        size: int | float,
+        is_buy: bool,
+        time_in_force: TimeInForce,
+        is_reduce_only: bool,
+        tp_trigger_price: int | float | None = None,
+        tp_limit_price: int | float | None = None,
+        sl_trigger_price: int | float | None = None,
+        sl_limit_price: int | float | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_entry::update_order_to_subaccount",
+                    type_arguments=[],
+                    function_arguments=[
+                        addr,
+                        int(order_id),
+                        market_addr,
+                        price,
+                        size,
+                        is_buy,
+                        time_in_force,
+                        is_reduce_only,
+                        tp_trigger_price,
+                        tp_limit_price,
+                        sl_trigger_price,
+                        sl_limit_price,
+                        None,  # builder_address
+                        None,  # builder_fees
+                    ],
                 ),
                 account_override,
                 txn_submit_timeout=txn_submit_timeout,
@@ -1088,6 +1171,16 @@ class DecibelWriteDex(BaseSDK):
 
         return await self.send_subaccount_tx(_send, subaccount_addr)
 
+    async def claim_campaign_reward(self, campaign_id: int) -> dict[str, Any]:
+        campaign_pkg = self._config.deployment.campaign_package
+        return await self._send_tx(
+            InputEntryFunctionData(
+                function=f"{campaign_pkg}::campaign_manager::claim_by_id",
+                type_arguments=[],
+                function_arguments=[campaign_id],
+            )
+        )
+
 
 class DecibelWriteDexSync(BaseSDKSync):
     def __init__(
@@ -1183,6 +1276,16 @@ class DecibelWriteDexSync(BaseSDKSync):
             )
         )
 
+    def admin_create_subaccount(self, owner_address: str) -> dict[str, Any]:
+        pkg = self._config.deployment.package
+        return self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::dex_accounts_entry::admin_create_new_subaccount",
+                type_arguments=[],
+                function_arguments=[owner_address],
+            )
+        )
+
     def deposit(
         self,
         amount: int,
@@ -1222,6 +1325,29 @@ class DecibelWriteDexSync(BaseSDKSync):
                     function=f"{pkg}::dex_accounts_entry::withdraw_from_subaccount",
                     type_arguments=[],
                     function_arguments=[addr, usdc, amount],
+                ),
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def withdraw_non_collateral(
+        self,
+        asset_addr: str,
+        amount: int,
+        subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_entry::withdraw_from_non_collateral",
+                    type_arguments=[],
+                    function_arguments=[addr, asset_addr, amount],
                 ),
                 txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
@@ -1459,6 +1585,56 @@ class DecibelWriteDexSync(BaseSDKSync):
                     function=f"{pkg}::dex_accounts_entry::cancel_order_to_subaccount",
                     type_arguments=[],
                     function_arguments=[addr, int(order_id), resolved_market_addr],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def update_order(
+        self,
+        *,
+        order_id: int | str,
+        market_addr: str,
+        price: int | float,
+        size: int | float,
+        is_buy: bool,
+        time_in_force: TimeInForce,
+        is_reduce_only: bool,
+        tp_trigger_price: int | float | None = None,
+        tp_limit_price: int | float | None = None,
+        sl_trigger_price: int | float | None = None,
+        sl_limit_price: int | float | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_entry::update_order_to_subaccount",
+                    type_arguments=[],
+                    function_arguments=[
+                        addr,
+                        int(order_id),
+                        market_addr,
+                        price,
+                        size,
+                        is_buy,
+                        time_in_force,
+                        is_reduce_only,
+                        tp_trigger_price,
+                        tp_limit_price,
+                        sl_trigger_price,
+                        sl_limit_price,
+                        None,  # builder_address
+                        None,  # builder_fees
+                    ],
                 ),
                 account_override,
                 txn_submit_timeout=txn_submit_timeout,
@@ -2118,3 +2294,13 @@ class DecibelWriteDexSync(BaseSDKSync):
             )
 
         return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def claim_campaign_reward(self, campaign_id: int) -> dict[str, Any]:
+        campaign_pkg = self._config.deployment.campaign_package
+        return self._send_tx(
+            InputEntryFunctionData(
+                function=f"{campaign_pkg}::campaign_manager::claim_by_id",
+                type_arguments=[],
+                function_arguments=[campaign_id],
+            )
+        )

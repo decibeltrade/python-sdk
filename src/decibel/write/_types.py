@@ -17,6 +17,7 @@ __all__ = [
     "DelegateTradingArgs",
     "RevokeDelegationArgs",
     "PlaceTpSlOrderArgs",
+    "UpdateOrderArgs",
     "UpdateTpOrderArgs",
     "UpdateSlOrderArgs",
     "CancelTpSlOrderArgs",
@@ -120,6 +121,22 @@ class PlaceTpSlOrderArgs(TypedDict, total=False):
     subaccount_addr: str | None
     account_override: Account | None
     tick_size: float | None
+
+
+class UpdateOrderArgs(TypedDict, total=False):
+    order_id: int | str
+    market_addr: str
+    price: float
+    size: float
+    is_buy: bool
+    time_in_force: TimeInForce
+    is_reduce_only: bool
+    tp_trigger_price: float | None
+    tp_limit_price: float | None
+    sl_trigger_price: float | None
+    sl_limit_price: float | None
+    subaccount_addr: str | None
+    account_override: Account | None
 
 
 class UpdateTpOrderArgs(TypedDict, total=False):

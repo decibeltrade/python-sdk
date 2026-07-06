@@ -2,6 +2,13 @@ from decibel._base import (
     BaseSDKOptions,
     BaseSDKOptionsSync,
 )
+from decibel._calculations import (
+    LiquidationMarket,
+    LiquidationMarketContext,
+    LiquidationPosition,
+    LiquidationPriceInput,
+    calculate_liquidation_price,
+)
 from decibel._constants import (
     DEFAULT_COMPAT_VERSION,
     DOCKER_CONFIG,
@@ -13,10 +20,16 @@ from decibel._constants import (
     DecibelConfig,
     Deployment,
     Network,
+    get_campaign_package,
     get_perp_engine_global_address,
     get_testc_address,
     get_usdc_address,
 )
+from decibel._derivable_account import (
+    derive_aptos_from_eth,
+    derive_aptos_from_solana,
+)
+from decibel._eip55 import to_checksum_address
 from decibel._exceptions import (
     TxnConfirmError,
     TxnSubmitError,
@@ -134,6 +147,7 @@ from decibel.write._types import (
     PlaceTwapOrderArgs,
     RevokeBuilderFeeArgs,
     RevokeDelegationArgs,
+    UpdateOrderArgs,
     UpdateSlOrderArgs,
     UpdateTpOrderArgs,
 )
@@ -183,6 +197,15 @@ __all__ = [
     "get_abi_data",
     "get_default_abi_data",
     "get_market_addr",
+    "LiquidationMarket",
+    "LiquidationMarketContext",
+    "LiquidationPosition",
+    "LiquidationPriceInput",
+    "calculate_liquidation_price",
+    "derive_aptos_from_eth",
+    "derive_aptos_from_solana",
+    "to_checksum_address",
+    "get_campaign_package",
     "get_perp_engine_global_address",
     "get_primary_subaccount_addr",
     "get_request",
@@ -246,6 +269,7 @@ __all__ = [
     "TimeInForce",
     "TransactionPayloadOrderless",
     "TwapEvent",
+    "UpdateOrderArgs",
     "UpdateSlOrderArgs",
     "UpdateTpOrderArgs",
 ]

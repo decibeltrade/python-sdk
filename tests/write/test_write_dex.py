@@ -1803,3 +1803,163 @@ class TestDecibelWriteDexSyncWithSubaccount:
         result = write_dex_sync.with_subaccount(fn, subaccount_addr=TEST_SUBACCOUNT_ADDR)
         assert called_with == [TEST_SUBACCOUNT_ADDR]
         assert result == "done"
+
+
+# ===========================================================================
+# Tests for TS-SDK parity write methods (async + sync)
+# ===========================================================================
+
+TEST_UPDATE_MARKET_ADDR = "0x" + "11" * 32
+TEST_ASSET_ADDR = "0x" + "ee" * 32
+TEST_CAMPAIGN_PKG = "0x" + "77" * 32
+
+
+def _with_campaign_pkg(config, pkg: str = TEST_CAMPAIGN_PKG):
+    from dataclasses import replace
+
+    return replace(config, deployment=replace(config.deployment, campaign_package=pkg))
+
+
+class TestAdminCreateSubaccount:
+    async def test_async_uses_correct_function(self, write_dex: DecibelWriteDex) -> None:
+        await write_dex.admin_create_subaccount(TEST_ACCOUNT_ADDR)
+        payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
+        assert (
+            payload.function == f"{TEST_PACKAGE}::dex_accounts_entry::admin_create_new_subaccount"
+        )
+        assert payload.function_arguments == [TEST_ACCOUNT_ADDR]
+
+    def test_sync_uses_correct_function(self, write_dex_sync: DecibelWriteDexSync) -> None:
+        write_dex_sync.admin_create_subaccount(TEST_ACCOUNT_ADDR)
+        payload: InputEntryFunctionData = write_dex_sync._send_tx.call_args.args[0]
+        assert (
+            payload.function == f"{TEST_PACKAGE}::dex_accounts_entry::admin_create_new_subaccount"
+        )
+        assert payload.function_arguments == [TEST_ACCOUNT_ADDR]
+
+
+class TestWithdrawNonCollateral:
+    async def test_async_uses_correct_function(self, write_dex: DecibelWriteDex) -> None:
+        await write_dex.withdraw_non_collateral(
+            TEST_ASSET_ADDR, 500, subaccount_addr=TEST_SUBACCOUNT_ADDR
+        )
+        payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
+        assert (
+            payload.function == f"{TEST_PACKAGE}::dex_accounts_entry::withdraw_from_non_collateral"
+        )
+        assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, TEST_ASSET_ADDR, 500]
+
+    async def test_async_defaults_to_primary_subaccount(self, write_dex: DecibelWriteDex) -> None:
+        with patch("decibel.write.get_primary_subaccount_addr", return_value=TEST_SUBACCOUNT_ADDR):
+            await write_dex.withdraw_non_collateral(TEST_ASSET_ADDR, 25)
+        payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
+        assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, TEST_ASSET_ADDR, 25]
+
+    def test_sync_uses_correct_function(self, write_dex_sync: DecibelWriteDexSync) -> None:
+        write_dex_sync.withdraw_non_collateral(
+            TEST_ASSET_ADDR, 500, subaccount_addr=TEST_SUBACCOUNT_ADDR
+        )
+        payload: InputEntryFunctionData = write_dex_sync._send_tx.call_args.args[0]
+        assert (
+            payload.function == f"{TEST_PACKAGE}::dex_accounts_entry::withdraw_from_non_collateral"
+        )
+        assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, TEST_ASSET_ADDR, 500]
+
+
+class TestUpdateOrder:
+    async def test_async_sends_correct_payload(self, write_dex: DecibelWriteDex) -> None:
+        await write_dex.update_order(
+            order_id="42",
+            market_addr=TEST_UPDATE_MARKET_ADDR,
+            price=100,
+            size=5,
+            is_buy=True,
+            time_in_force=TimeInForce.GoodTillCanceled,
+            is_reduce_only=False,
+            subaccount_addr=TEST_SUBACCOUNT_ADDR,
+        )
+        payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
+        assert payload.function == f"{TEST_PACKAGE}::dex_accounts_entry::update_order_to_subaccount"
+        assert payload.function_arguments == [
+            TEST_SUBACCOUNT_ADDR,
+            42,
+            TEST_UPDATE_MARKET_ADDR,
+            100,
+            5,
+            True,
+            TimeInForce.GoodTillCanceled,
+            False,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ]
+
+    async def test_async_passes_tp_sl_and_account_override(
+        self, write_dex: DecibelWriteDex
+    ) -> None:
+        await write_dex.update_order(
+            order_id=7,
+            market_addr=TEST_UPDATE_MARKET_ADDR,
+            price=200,
+            size=3,
+            is_buy=False,
+            time_in_force=TimeInForce.PostOnly,
+            is_reduce_only=True,
+            tp_trigger_price=210,
+            tp_limit_price=211,
+            sl_trigger_price=190,
+            sl_limit_price=189,
+            subaccount_addr=TEST_SUBACCOUNT_ADDR,
+        )
+        payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
+        assert payload.function_arguments == [
+            TEST_SUBACCOUNT_ADDR,
+            7,
+            TEST_UPDATE_MARKET_ADDR,
+            200,
+            3,
+            False,
+            TimeInForce.PostOnly,
+            True,
+            210,
+            211,
+            190,
+            189,
+            None,
+            None,
+        ]
+
+    def test_sync_sends_correct_payload(self, write_dex_sync: DecibelWriteDexSync) -> None:
+        write_dex_sync.update_order(
+            order_id="42",
+            market_addr=TEST_UPDATE_MARKET_ADDR,
+            price=100,
+            size=5,
+            is_buy=True,
+            time_in_force=TimeInForce.GoodTillCanceled,
+            is_reduce_only=False,
+            subaccount_addr=TEST_SUBACCOUNT_ADDR,
+        )
+        payload: InputEntryFunctionData = write_dex_sync._send_tx.call_args.args[0]
+        assert payload.function == f"{TEST_PACKAGE}::dex_accounts_entry::update_order_to_subaccount"
+        assert payload.function_arguments[:3] == [TEST_SUBACCOUNT_ADDR, 42, TEST_UPDATE_MARKET_ADDR]
+        assert payload.function_arguments[-2:] == [None, None]
+
+
+class TestClaimCampaignReward:
+    async def test_async_uses_campaign_package(self, write_dex: DecibelWriteDex) -> None:
+        write_dex._config = _with_campaign_pkg(write_dex._config)
+        await write_dex.claim_campaign_reward(3)
+        payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
+        assert payload.function == f"{TEST_CAMPAIGN_PKG}::campaign_manager::claim_by_id"
+        assert payload.function_arguments == [3]
+
+    def test_sync_uses_campaign_package(self, write_dex_sync: DecibelWriteDexSync) -> None:
+        write_dex_sync._config = _with_campaign_pkg(write_dex_sync._config)
+        write_dex_sync.claim_campaign_reward(9)
+        payload: InputEntryFunctionData = write_dex_sync._send_tx.call_args.args[0]
+        assert payload.function == f"{TEST_CAMPAIGN_PKG}::campaign_manager::claim_by_id"
+        assert payload.function_arguments == [9]
