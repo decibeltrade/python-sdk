@@ -229,6 +229,41 @@ read.leaderboard.get_leaderboard()
 read.portfolio_chart.get_by_addr(sub_addr=sub_addr, time_range="7d", data_type="pnl")
 read.vaults.get_vaults()
 read.trading_points.get_by_owner(owner_addr=addr)
+read.user_fees.get_by_addr(sub_addr=sub_addr)
+
+# Points, streaks & tiers
+read.points_leaderboard.get_points_leaderboard(limit=50, sort_key="total_amps")
+read.trading_amps.get_by_owner(owner_addr=addr, season="season1", days=7)
+read.tier.get_by_owner(owner_addr=addr)
+read.streaks.get_by_owner(owner_addr=addr)
+read.global_points_stats.get()
+
+# Campaigns & rewards
+read.campaigns.get_active()
+read.campaigns.get_summary(account_address=addr)
+
+# Referrals
+read.referrals.validate_code(code)
+read.referrals.get_account_referral(account)
+read.referrals.get_referrer_stats(account)
+read.referrals.get_user_referrals(referrer_account=account)
+read.referrals.get_affiliate_codes(account)
+read.referrals.get_affiliate_earnings(account)
+read.referrals.redeem_code(referral_code=code, account=account)
+
+# Withdrawal queue (indexed HTTP + on-chain fallback)
+read.withdraw_queue.get_by_addr(sub_addr=sub_addr, status="Queued")
+read.withdraw_queue.get_pending_withdrawals(user_addr)
+
+# On-chain view / resource helpers
+read.usdc_balance(addr)
+read.token_balance(addr, token_addr, token_decimals)
+read.account_balance(addr)
+read.position_size(addr, market_addr)
+read.get_crossed_position(addr)
+read.usdc_decimals()
+read.collateral_balance_decimals()
+read.global_perp_engine_state()
 
 # WebSocket subscriptions
 read.market_prices.subscribe_by_name(market_name, callback)
@@ -244,6 +279,7 @@ read.user_trade_history.subscribe_by_addr(sub_addr, callback)
 read.user_bulk_orders.subscribe_by_addr(sub_addr, callback)
 read.user_active_twaps.subscribe_by_addr(sub_addr, callback)
 read.user_notifications.subscribe_by_addr(sub_addr, callback)
+read.withdraw_queue.subscribe_by_addr(sub_addr, callback)
 ```
 
 ### Write Client
@@ -255,6 +291,7 @@ write = DecibelWriteDex(config, account, opts)
 
 # Orders
 write.place_order(market_name=..., price=..., size=..., is_buy=..., time_in_force=..., is_reduce_only=...)
+write.update_order(order_id=..., market_addr=..., price=..., size=..., is_buy=..., time_in_force=..., is_reduce_only=...)
 write.cancel_order(order_id=..., market_name=...)
 write.cancel_client_order(client_order_id=..., market_name=...)
 write.place_bulk_orders(market_name=..., sequence_number=..., bid_prices=..., bid_sizes=..., ask_prices=..., ask_sizes=...)
@@ -272,6 +309,7 @@ write.cancel_twap_order(market_addr=..., order_id=...)
 # Collateral
 write.deposit(amount)
 write.withdraw(amount)
+write.withdraw_non_collateral(asset_addr, amount)
 
 # Vaults
 write.deposit_to_vault(vault_address=..., amount=..., subaccount_addr=...)
@@ -279,7 +317,47 @@ write.withdraw_from_vault(vault_address=..., shares=...)
 
 # Subaccounts
 write.create_subaccount()
+write.admin_create_subaccount(owner_address)
 write.deactivate_subaccount(subaccount_addr=...)
+
+# Rewards
+write.claim_campaign_reward(campaign_id)
+```
+
+> A synchronous client, `DecibelWriteDexSync`, exposes the same methods without `async`/`await`.
+
+### Utilities
+
+```python
+from decibel import (
+    calculate_liquidation_price,
+    LiquidationPriceInput,
+    LiquidationPosition,
+    LiquidationMarket,
+    LiquidationMarketContext,
+    to_checksum_address,
+    derive_aptos_from_eth,
+    derive_aptos_from_solana,
+)
+
+# Estimate a liquidation price (for an existing position or a simulated order).
+liq_price = calculate_liquidation_price(
+    LiquidationPriceInput(
+        account_equity=1000.0,
+        positions=[LiquidationPosition(market_addr="0xBTC", size=0.5, entry_price=100_000)],
+        markets=[LiquidationMarket(market_addr="0xBTC", market_name="BTC/USD", max_leverage=10)],
+        market_contexts=[LiquidationMarketContext(market_name="BTC/USD", mark_price=100_000)],
+        target_market_addr="0xBTC",
+        order_size=0,  # 0 = current position; non-zero simulates an order
+    )
+)
+
+# EIP-55 checksum an Ethereum address (zero-dependency keccak-256).
+checksummed = to_checksum_address("0xd8da6bf26964af9d7eed9e03e53415d37aa96045")
+
+# Derive an Aptos address from an EVM / Solana wallet (derivable accounts).
+aptos_addr = derive_aptos_from_eth("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+aptos_addr = derive_aptos_from_solana("11111111111111111111111111111111")
 ```
 
 ## Development
