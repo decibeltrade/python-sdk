@@ -160,6 +160,13 @@ Upon subscribing to a topic, the server SHALL send the current state as the firs
 
 ## 3. Market Data Channels
 
+> **Products.** Market-scoped topics (`depth:`, `trades:`, `market_candlestick:`, `market_price:`)
+> are **product-agnostic**: they are keyed by market address, and the address already encodes the
+> product — perp addresses derive from the perp engine, spot addresses from the spot engine. A spot
+> subscription therefore differs from a perp one only in the address, and no `asset_type` parameter
+> appears anywhere in a topic string. Payload rows on the dual-product channels carry an
+> `asset_type` field; it is absent on API versions predating spot, which SHALL be read as `"perp"`.
+
 ### 3.1 All Market Prices
 
 **Topic:** `all_market_prices`
@@ -356,6 +363,52 @@ If aggregation level is omitted, defaults to `1`.
 
 ---
 
+### 3.6 All Spot Mids
+
+**Topic:** `all_spot_mids`
+
+**Description:** Mid / last-trade prices for all spot markets. Global topic (no parameters). The
+spot counterpart of `all_market_prices` — spot has no funding or open interest, so it carries prices
+only.
+
+**Message Schema:**
+```json
+{
+  "topic": "all_spot_mids",
+  "mids": [
+    {
+      "market_addr": "0xabcdef...",
+      "asset_type": "spot",
+      "mid": 12.51,
+      "last_trade_price": 12.5,
+      "transaction_unix_ms": 1699564800000
+    }
+  ]
+}
+```
+
+**Payload Type:** `AllSpotMidsResponse`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `topic` | string | Yes |
+| `mids` | MidDto[] | Yes |
+
+**MidDto:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `market_addr` | string | Yes | Spot market address |
+| `asset_type` | string | Yes | `"spot"` |
+| `mid` | float64? | Yes | Null unless both book sides have resting liquidity |
+| `last_trade_price` | float64? | Yes | Null until the market's first fill |
+| `transaction_unix_ms` | int64 | Yes | Update timestamp |
+
+**Notes:**
+- Each update carries one row per registered spot market.
+
+---
+
 ## 4. Account Channels
 
 ### 4.1 Account Overview
@@ -544,6 +597,57 @@ If aggregation level is omitted, defaults to `1`.
 | `funding_rates` | FundingRateHistory[] | Yes |
 
 **Note:** WebSocket FundingRateHistory includes `is_funding_positive` field which is absent from REST FundingRateHistory.
+
+---
+
+### 4.8 Withdraw Queue
+
+**Topic:** `withdraw_queue:{userAddr}`
+
+**Description:** Incremental updates to an account's async withdrawal queue. Withdrawals settle
+asynchronously, so a single `request_id` produces several events over its lifetime
+(Queued → Processed / Cancelled, plus one row per partial fill).
+
+**Message Schema:**
+```json
+{
+  "topic": "withdraw_queue:0x1234...",
+  "entries": [
+    {
+      "user": "0x1234...",
+      "recipient": "0x...",
+      "market": null,
+      "fungible_amount": 100.0,
+      "processed_amount": 0.0,
+      "request_id": "42",
+      "status": "Queued",
+      "cancel_reason": null,
+      "timestamp_ms": 1699564800000,
+      "queued_at_ms": 1699564800000,
+      "transaction_version": 12345678
+    }
+  ]
+}
+```
+
+**Payload Type:** `WithdrawQueueUpdate`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `topic` | string | Yes |
+| `entries` | WithdrawQueueEntry[] | Yes |
+
+**Notes:**
+- Deltas, not snapshots. Seed from `GET /api/v1/withdraw_queue` (Section 3.8 of SPEC-REST) and merge
+  by `request_id`.
+- Delivery is **at-least-once**: apply an update only when its `transaction_version` is *strictly*
+  greater than the one held, or a redelivery will overwrite merged fields with nulls.
+- On reconnect, merge with the WS cache as the base and the HTTP snapshot as the delta, so HTTP data
+  cannot regress entries the WS has already advanced.
+- `queued_at_ms` may be null on deltas whose Queued event was in a different batch. Do not fall back
+  to `timestamp_ms` — that is the latest event's time.
+- Carry `cancel_reason` forward only between Cancelled rows, or a Queued row ends up wearing a stale
+  reason.
 
 ---
 
@@ -774,6 +878,48 @@ If aggregation level is omitted, defaults to `1`.
 
 ---
 
+### 7.2 Protected Trial Update (Funded First Trade)
+
+**Topic:** `protected_trial_update:{userAddr}`
+
+**Description:** Fires on `TrialOpened`, `TrialClosed` and `TrialResetByAdmin` for the funded-first-
+trade campaign.
+
+**Message Schema:**
+```json
+{
+  "topic": "protected_trial_update:0x1234...",
+  "trials": [
+    {
+      "trial_id": 1,
+      "user": "0x1234...",
+      "campaign_addr": "0x...",
+      "status": "Active",
+      "size": 1.5,
+      "market": "0x...",
+      "side": "Long",
+      "opened_at_ms": 1699564800000,
+      "expires_at_ms": 1699565400000
+    }
+  ]
+}
+```
+
+**Payload Type:** `ProtectedTrialUpdate`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `topic` | string | Yes |
+| `trials` | TrialDto[] | Yes |
+
+**Notes:**
+- Streaming-only: there is no initial snapshot. Seed from `GET /api/v1/protected_trials`
+  (SPEC-REST Section 10.4) and merge by `trial_id`.
+- Terminal pushes may omit the open-sourced fields (`mark_at_open`, `market`, `side`, …), so a merge
+  SHALL preserve the values already held rather than overwriting them with nulls.
+
+---
+
 ## 8. SDK Subscription Interface
 
 ### 8.1 Subscribe Method
@@ -867,6 +1013,7 @@ All topic strings follow the pattern: `{channel_name}:{parameter}:{optional_para
 | Channel | Topic Pattern | Parameters |
 |---------|--------------|------------|
 | All Market Prices | `all_market_prices` | none |
+| All Spot Mids | `all_spot_mids` | none |
 | Market Price | `market_price:{marketAddr}` | market address |
 | Market Depth | `depth:{marketAddr}:{aggregation}` | market address, aggregation level |
 | Market Trades | `trades:{marketAddr}` | market address |
@@ -881,6 +1028,12 @@ All topic strings follow the pattern: `{channel_name}:{parameter}:{optional_para
 | Bulk Order Fills | `bulk_order_fills:{userAddr}` | subaccount address |
 | User Active TWAPs | `user_active_twaps:{userAddr}` | subaccount address |
 | Notifications | `notifications:{userAddr}` | subaccount address |
+| Withdraw Queue | `withdraw_queue:{userAddr}` | subaccount address |
+| Protected Trial Update | `protected_trial_update:{userAddr}` | account address |
+
+> **Note:** No topic string carries an `asset_type` component. Market-scoped topics are keyed by
+> market address, which already encodes the product; account-scoped topics stream both products and
+> tag each row with `asset_type`.
 
 > **Note:** The AsyncAPI spec at docs.decibel.trade uses `user_positions` and `user_open_orders`
 > as channel names, but the actual server topics used by the SDK are `account_positions` and

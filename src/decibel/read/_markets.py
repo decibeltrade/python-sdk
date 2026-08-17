@@ -8,6 +8,7 @@ from typing import Annotated, Any, Literal
 from aptos_sdk.account_address import AccountAddress
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
+from .._asset_type import AssetTypeName, is_spot
 from .._utils import get_market_addr
 from ._base import BaseReader
 
@@ -20,6 +21,8 @@ __all__ = [
     "PerpMarket",
     "PerpMarketConfig",
     "SzPrecision",
+    "is_perp_market",
+    "is_spot_market",
 ]
 
 
@@ -32,6 +35,15 @@ class MarketMode(StrEnum):
 
 
 class PerpMarket(BaseModel):
+    """A ``/markets`` row of either product.
+
+    ``/api/v1/markets`` mixes perp and spot rows in one list, discriminated by ``asset_type``.
+    Spot rows reuse this shape with different field semantics: ``sz_decimals`` is the base
+    asset's decimals, ``px_decimals`` the quote asset's, and the perp-only fields
+    (``max_leverage``, ``max_open_interest``) are zeroed. Use :func:`is_spot_market` /
+    :func:`is_perp_market` (or ``asset_type`` directly) to demux.
+    """
+
     model_config = ConfigDict(populate_by_name=True)
 
     market_addr: str
@@ -44,6 +56,17 @@ class PerpMarket(BaseModel):
     lot_size: float
     max_open_interest: float
     mode: MarketMode
+    # Absent on API versions that predate spot support (treat as "perp").
+    asset_type: AssetTypeName | None = None
+
+
+def is_spot_market(market: PerpMarket) -> bool:
+    return is_spot(market.asset_type)
+
+
+def is_perp_market(market: PerpMarket) -> bool:
+    """Rows without ``asset_type`` (pre-spot API versions) are perp."""
+    return not is_spot(market.asset_type)
 
 
 class MarketModeConfigOpen(BaseModel):
@@ -100,7 +123,13 @@ class _PerpMarketList(RootModel[list[PerpMarket]]):
 
 
 class MarketsReader(BaseReader):
-    async def get_all(self) -> list[PerpMarket]:
+    async def get_all(self, *, include_spot: bool = False) -> list[PerpMarket]:
+        """Get all available markets.
+
+        Spot rows are filtered out by default so existing perp consumers don't see spot
+        markets masquerading as 0-leverage perps; pass ``include_spot=True`` to get the full
+        list and demux with :func:`is_spot_market` / :func:`is_perp_market`.
+        """
         response, _, _ = await self.get_request(
             model=_PerpMarketList,
             url=f"{self.config.trading_http_url}/api/v1/markets",
@@ -109,12 +138,27 @@ class MarketsReader(BaseReader):
         seen: set[str] = set()
         unique: list[PerpMarket] = []
         for market in response.root:
+            if not include_spot and is_spot_market(market):
+                continue
             if market.market_addr not in seen:
                 seen.add(market.market_addr)
                 unique.append(market)
         return unique
 
+    async def get_all_spot(self) -> list[PerpMarket]:
+        """Get all available spot markets. Client-side filter of ``/markets``."""
+        markets = await self.get_all(include_spot=True)
+        return [market for market in markets if is_spot_market(market)]
+
     async def get_by_name(self, market_name: str) -> PerpMarketConfig | None:
+        """On-chain ``PerpMarketConfig`` for a **perp** market name.
+
+        Perp-only, unlike the rest of this reader: the address is derived from
+        ``perp_engine_global`` and the resource read is ``perp_market_config::PerpMarketConfig``,
+        neither of which exists for spot. Passing a spot market name therefore returns ``None``
+        rather than raising — as does a name that simply isn't listed. Use
+        :meth:`get_all_spot` for spot market metadata.
+        """
         # TODO: Handle different __variant__ values
         market_addr = get_market_addr(market_name, self.config.deployment.perp_engine_global)
         try:
@@ -128,6 +172,7 @@ class MarketsReader(BaseReader):
             return None
 
     async def list_market_addresses(self) -> list[str]:
+        """Addresses of all registered **perp** markets (``perp_engine::list_markets``)."""
         result_bytes = await self.aptos.view(
             f"{self.config.deployment.package}::perp_engine::list_markets",
             [],
@@ -137,6 +182,7 @@ class MarketsReader(BaseReader):
         return [str(addr) for addr in result[0]]
 
     async def market_name_by_address(self, market_addr: str) -> str:
+        """Name of a **perp** market (``perp_engine::market_name``); raises for a spot address."""
         result_bytes = await self.aptos.view(
             f"{self.config.deployment.package}::perp_engine::market_name",
             [],

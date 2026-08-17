@@ -16,8 +16,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import ValidationError
 
+from decibel._asset_type import AssetTypeName
 from decibel._constants import TESTNET_CONFIG
-from decibel._utils import get_market_addr
+from decibel._utils import get_market_addr, get_spot_market_addr
 from decibel.read._base import ReaderDeps
 from decibel.read._ws import DecibelWsSubscription
 
@@ -178,6 +179,52 @@ class TestReaderTopicConstruction:
         topic = mock_ws.subscribe.call_args[0][0]
         expected_addr = get_market_addr("ETH-PERP", TESTNET_CONFIG.deployment.perp_engine_global)
         assert topic == f"market_candlestick:{expected_addr}:1h"
+
+    def test_all_spot_mids_subscribe_topic(self, deps: ReaderDeps, mock_ws: MagicMock) -> None:
+        """subscribe_all_spot_mids SHALL use topic 'all_spot_mids' (no parameters)."""
+        from decibel.read._market_prices import MarketPricesReader
+
+        reader = MarketPricesReader(deps)
+        reader.subscribe_all_spot_mids(lambda _: None)
+
+        topic = mock_ws.subscribe.call_args[0][0]
+        assert topic == "all_spot_mids"
+
+    def test_withdraw_queue_subscribe_topic(self, deps: ReaderDeps, mock_ws: MagicMock) -> None:
+        """WithdrawQueueReader SHALL subscribe to 'withdraw_queue:{addr}'."""
+        from decibel.read._withdraw_queue import WithdrawQueueReader
+
+        reader = WithdrawQueueReader(deps)
+        reader.subscribe_by_addr("0xqueue", lambda _: None)
+
+        topic = mock_ws.subscribe.call_args[0][0]
+        assert topic == "withdraw_queue:0xqueue"
+
+    def test_protected_trial_subscribe_topic(self, deps: ReaderDeps, mock_ws: MagicMock) -> None:
+        """FundedFirstTradeReader SHALL subscribe to 'protected_trial_update:{addr}'."""
+        from decibel.read._funded_first_trade import FundedFirstTradeReader
+
+        reader = FundedFirstTradeReader(deps)
+        reader.subscribe_by_addr("0xtrial", lambda _: None)
+
+        topic = mock_ws.subscribe.call_args[0][0]
+        assert topic == "protected_trial_update:0xtrial"
+
+    def test_market_topics_are_product_agnostic(self, deps: ReaderDeps, mock_ws: MagicMock) -> None:
+        """depth:/trades:/market_candlestick: are keyed by market address, which already
+        encodes the product — so a spot subscription differs only in the derived address."""
+        from decibel.read._market_depth import MarketDepthReader
+
+        reader = MarketDepthReader(deps)
+        reader.subscribe_by_name("APT/USDC", 1, lambda _: None, asset_type=AssetTypeName.SPOT)
+
+        topic = mock_ws.subscribe.call_args[0][0]
+        expected_addr = get_spot_market_addr("APT/USDC", TESTNET_CONFIG.deployment.package)
+        assert topic == f"depth:{expected_addr}:1"
+        # Same market name on perp derives a different address, hence a different topic.
+        assert get_market_addr("APT/USDC", TESTNET_CONFIG.deployment.perp_engine_global) not in (
+            topic
+        )
 
 
 # ---------------------------------------------------------------------------

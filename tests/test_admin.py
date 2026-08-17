@@ -18,7 +18,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aptos_sdk.account_address import AccountAddress
 
-from decibel.admin import DecibelAdminDex, DecibelAdminDexSync
+from decibel.admin import (
+    DecibelAdminDex,
+    DecibelAdminDexSync,
+    DecibelSpotAdminDex,
+    DecibelSpotAdminDexSync,
+)
 
 if TYPE_CHECKING:
     from decibel._transaction_builder import InputEntryFunctionData
@@ -628,20 +633,22 @@ class TestSetPublicMinting:
 
 
 class TestUsdcBalance:
+    # RestClient.view returns the raw response body as bytes, not a parsed list — the mocks
+    # below match that, so the JSON decode in usdc_balance is actually exercised.
     async def test_returns_balance_for_str_addr(self, admin_dex: DecibelAdminDex) -> None:
-        admin_dex._aptos.view = AsyncMock(return_value=["1000000"])
+        admin_dex._aptos.view = AsyncMock(return_value=b'["1000000"]')
         result = await admin_dex.usdc_balance(addr="0x" + "11" * 32)
         assert result == 1_000_000
 
     async def test_returns_balance_for_account_address(self, admin_dex: DecibelAdminDex) -> None:
-        admin_dex._aptos.view = AsyncMock(return_value=["500000"])
+        admin_dex._aptos.view = AsyncMock(return_value=b'["500000"]')
         addr = AccountAddress.from_str("0x" + "11" * 32)
         result = await admin_dex.usdc_balance(addr=addr)
         assert result == 500_000
 
     async def test_converts_account_address_to_str(self, admin_dex: DecibelAdminDex) -> None:
         addr = AccountAddress.from_str("0x" + "33" * 32)
-        admin_dex._aptos.view = AsyncMock(return_value=["0"])
+        admin_dex._aptos.view = AsyncMock(return_value=b'["0"]')
         await admin_dex.usdc_balance(addr=addr)
 
         call_args = admin_dex._aptos.view.call_args
@@ -1101,3 +1108,133 @@ class TestDecibelAdminDexSyncUsdcBalance:
 
         admin_dex_sync.usdc_balance(addr="0x" + "11" * 32)
         admin_dex_sync._http_client.post.assert_called_once()
+
+
+# ===========================================================================
+# Tests for DecibelSpotAdminDex / DecibelSpotAdminDexSync
+# ===========================================================================
+
+TEST_BASE_ASSET = "0x" + "b1" * 32
+TEST_QUOTE_ASSET = "0x" + "b2" * 32
+
+
+@pytest.fixture
+def spot_admin_dex(test_config, mock_account) -> DecibelSpotAdminDex:
+    with patch("decibel.admin.BaseSDK.__init__", return_value=None):
+        dex = DecibelSpotAdminDex.__new__(DecibelSpotAdminDex)
+        dex._config = test_config
+        dex._account = mock_account
+        dex._http_client = AsyncMock()
+        dex._skip_simulate = False
+        dex._no_fee_payer = False
+        dex._node_api_key = None
+        dex._gas_price_manager = None
+        dex._time_delta_ms = 0
+        dex._chain_id = 2
+        dex._abi_registry = MagicMock()
+        dex._send_tx = AsyncMock(return_value=_make_tx_response())
+        dex._aptos = AsyncMock()
+        return dex
+
+
+@pytest.fixture
+def spot_admin_dex_sync(test_config, mock_account) -> DecibelSpotAdminDexSync:
+    with patch("decibel.admin.BaseSDKSync.__init__", return_value=None):
+        dex = DecibelSpotAdminDexSync.__new__(DecibelSpotAdminDexSync)
+        dex._config = test_config
+        dex._account = mock_account
+        dex._http_client = MagicMock()
+        dex._skip_simulate = False
+        dex._no_fee_payer = False
+        dex._node_api_key = None
+        dex._gas_price_manager = None
+        dex._time_delta_ms = 0
+        dex._chain_id = 2
+        dex._abi_registry = MagicMock()
+        dex._send_tx = MagicMock(return_value=_make_tx_response())
+        return dex
+
+
+class TestSpotAdminDex:
+    async def test_set_usdc_quote_metadata(self, spot_admin_dex: DecibelSpotAdminDex) -> None:
+        await spot_admin_dex.set_usdc_quote_metadata(TEST_USDC)
+
+        payload: InputEntryFunctionData = spot_admin_dex._send_tx.call_args.args[0]
+        assert payload.function == f"{TEST_PACKAGE}::spot_admin_apis::set_usdc_quote_metadata"
+        assert payload.function_arguments == [TEST_USDC]
+
+    async def test_register_market(self, spot_admin_dex: DecibelSpotAdminDex) -> None:
+        await spot_admin_dex.register_market(
+            "APT/USDC",
+            TEST_BASE_ASSET,
+            TEST_QUOTE_ASSET,
+            tick_size=100,
+            lot_size=1000,
+            min_size=10000,
+            async_matching_enabled=True,
+            min_price=1,
+            max_price=1_000_000,
+        )
+
+        payload: InputEntryFunctionData = spot_admin_dex._send_tx.call_args.args[0]
+        assert payload.function == f"{TEST_PACKAGE}::spot_admin_apis::register_market"
+        # u64 args go over the wire as strings; the bool stays a bool.
+        assert payload.function_arguments == [
+            "APT/USDC",
+            TEST_BASE_ASSET,
+            TEST_QUOTE_ASSET,
+            "100",
+            "1000",
+            "10000",
+            True,
+            "1",
+            "1000000",
+        ]
+
+    async def test_list_market_addresses(self, spot_admin_dex: DecibelSpotAdminDex) -> None:
+        market_a = "0x" + "a1" * 32
+        market_b = "0x" + "a2" * 32
+        spot_admin_dex._aptos.view = AsyncMock(
+            return_value=f'[["{market_a}","{market_b}"]]'.encode()
+        )
+        result = await spot_admin_dex.list_market_addresses()
+
+        assert result == [market_a, market_b]
+        assert spot_admin_dex._aptos.view.call_args.args[0] == (
+            f"{TEST_PACKAGE}::spot_engine::list_markets"
+        )
+
+
+class TestSpotAdminDexSync:
+    def test_set_usdc_quote_metadata(self, spot_admin_dex_sync: DecibelSpotAdminDexSync) -> None:
+        spot_admin_dex_sync.set_usdc_quote_metadata(TEST_USDC)
+
+        payload: InputEntryFunctionData = spot_admin_dex_sync._send_tx.call_args.args[0]
+        assert payload.function == f"{TEST_PACKAGE}::spot_admin_apis::set_usdc_quote_metadata"
+
+    def test_register_market(self, spot_admin_dex_sync: DecibelSpotAdminDexSync) -> None:
+        spot_admin_dex_sync.register_market(
+            "APT/USDC",
+            TEST_BASE_ASSET,
+            TEST_QUOTE_ASSET,
+            tick_size=100,
+            lot_size=1000,
+            min_size=10000,
+            async_matching_enabled=False,
+            min_price=1,
+            max_price=1_000_000,
+        )
+
+        payload: InputEntryFunctionData = spot_admin_dex_sync._send_tx.call_args.args[0]
+        assert payload.function == f"{TEST_PACKAGE}::spot_admin_apis::register_market"
+        assert payload.function_arguments[6] is False
+
+    def test_list_market_addresses(self, spot_admin_dex_sync: DecibelSpotAdminDexSync) -> None:
+        market_a = "0x" + "a1" * 32
+        mock_response = MagicMock()
+        mock_response.json.return_value = [[market_a]]
+        spot_admin_dex_sync._http_client.post.return_value = mock_response
+
+        assert spot_admin_dex_sync.list_market_addresses() == [market_a]
+        body = spot_admin_dex_sync._http_client.post.call_args.kwargs["json"]
+        assert body["function"] == f"{TEST_PACKAGE}::spot_engine::list_markets"

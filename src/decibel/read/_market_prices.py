@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, RootModel
 
+from .._asset_type import AssetTypeName
 from .._utils import get_market_addr
 from ._base import BaseReader
 
@@ -13,10 +14,12 @@ if TYPE_CHECKING:
     from ._ws import Unsubscribe
 
 __all__ = [
-    "MarketPrice",
-    "MarketPriceWsMessage",
     "AllMarketPricesWsMessage",
+    "AllSpotMidsWsMessage",
+    "MarketPrice",
     "MarketPricesReader",
+    "MarketPriceWsMessage",
+    "Mid",
 ]
 
 
@@ -47,6 +50,28 @@ class AllMarketPricesWsMessage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     prices: list[MarketPrice]
+
+
+class Mid(BaseModel):
+    """Mid / last-trade price for one market.
+
+    ``mid`` is ``None`` unless both book sides have resting liquidity; ``last_trade_price`` is
+    ``None`` until the market's first fill.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    market_addr: str
+    asset_type: AssetTypeName
+    mid: float | None
+    last_trade_price: float | None
+    transaction_unix_ms: int
+
+
+class AllSpotMidsWsMessage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    mids: list[Mid]
 
 
 class MarketPricesReader(BaseReader):
@@ -98,3 +123,17 @@ class MarketPricesReader(BaseReader):
     ) -> Unsubscribe:
         topic = "all_market_prices"
         return self.ws.subscribe(topic, AllMarketPricesWsMessage, on_data)
+
+    def subscribe_all_spot_mids(
+        self,
+        on_data: (
+            Callable[[AllSpotMidsWsMessage], None]
+            | Callable[[AllSpotMidsWsMessage], Awaitable[None]]
+        ),
+    ) -> Unsubscribe:
+        """Subscribe to mid/last-trade price updates for all spot markets.
+
+        Each update carries one row per registered spot market.
+        """
+        topic = "all_spot_mids"
+        return self.ws.subscribe(topic, AllSpotMidsWsMessage, on_data)

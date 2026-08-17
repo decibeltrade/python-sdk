@@ -2,7 +2,7 @@
 Comprehensive unit tests for src/decibel/write/__init__.py.
 
 Tests cover DecibelWriteDex (async) and DecibelWriteDexSync (sync) classes,
-the _round_to_tick_size helper, and all public methods.
+the _round_price_to_tick helper, and all public methods.
 
 Strategy: mock _send_tx / _send_tx at the instance level so no real HTTP
 calls or blockchain interactions happen. The tests verify that:
@@ -29,7 +29,7 @@ from decibel.write import (
     DecibelWriteDex,
     DecibelWriteDexSync,
     TimeInForce,
-    _round_to_tick_size,  # type: ignore[attr-defined]
+    _round_price_to_tick,  # type: ignore[attr-defined]
 )
 
 if TYPE_CHECKING:
@@ -143,47 +143,47 @@ def write_dex_sync(test_config, mock_account) -> DecibelWriteDexSync:
 
 
 # ===========================================================================
-# Tests for _round_to_tick_size helper
+# Tests for _round_price_to_tick helper
 # ===========================================================================
 
 
 class TestRoundToTickSize:
     def test_normal_rounding(self) -> None:
-        result = _round_to_tick_size(105.3, 10)
+        result = _round_price_to_tick(105.3, 10)
         assert result == 110
 
     def test_rounds_down(self) -> None:
-        result = _round_to_tick_size(104.9, 10)
+        result = _round_price_to_tick(104.9, 10)
         assert result == 100
 
     def test_exact_multiple(self) -> None:
-        result = _round_to_tick_size(100.0, 10)
+        result = _round_price_to_tick(100.0, 10)
         assert result == 100
 
     def test_zero_value_returns_zero(self) -> None:
-        result = _round_to_tick_size(0, 10)
+        result = _round_price_to_tick(0, 10)
         assert result == 0.0
 
     def test_zero_tick_size_returns_zero(self) -> None:
-        result = _round_to_tick_size(100, 0)
+        result = _round_price_to_tick(100, 0)
         assert result == 0.0
 
     def test_both_zero_returns_zero(self) -> None:
-        result = _round_to_tick_size(0, 0)
+        result = _round_price_to_tick(0, 0)
         assert result == 0.0
 
     def test_float_inputs(self) -> None:
         # 1.05 / 0.1 = 10.5 — Python banker's rounding rounds this to 10 (even)
-        result = _round_to_tick_size(1.05, 0.1)
+        result = _round_price_to_tick(1.05, 0.1)
         assert result == pytest.approx(1.0, rel=1e-6)
 
     def test_float_inputs_rounds_up(self) -> None:
         # 1.17 / 0.1 = 11.7 — rounds to 12 → 1.2
-        result = _round_to_tick_size(1.17, 0.1)
+        result = _round_price_to_tick(1.17, 0.1)
         assert result == pytest.approx(1.2, rel=1e-6)
 
     def test_small_tick_size(self) -> None:
-        result = _round_to_tick_size(123.456, 1)
+        result = _round_price_to_tick(123.456, 1)
         assert result == 123
 
 
@@ -455,7 +455,10 @@ class TestWithdraw:
             await write_dex.withdraw(amount=200)
 
         payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
-        assert payload.function == f"{TEST_PACKAGE}::dex_accounts_entry::withdraw_from_subaccount"
+        assert (
+            payload.function
+            == f"{TEST_PACKAGE}::dex_accounts_entry::withdraw_from_cross_collateral"
+        )
         assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, TEST_USDC, 200]
 
     async def test_withdraw_passes_timeouts(self, write_dex: DecibelWriteDex) -> None:
@@ -1268,6 +1271,29 @@ class TestCreateVault:
         payload: InputEntryFunctionData = write_dex._send_tx.call_args.args[0]
         assert payload.function == f"{TEST_PACKAGE}::vault_api::create_and_fund_vault"
 
+    def test_sync_forwards_timeouts_like_async(self, write_dex_sync: DecibelWriteDexSync) -> None:
+        """The sync mirror accepts and forwards the timeout kwargs every write method takes."""
+        args = {
+            "vault_name": "My Vault",
+            "vault_description": "A test vault",
+            "vault_social_links": [],
+            "vault_share_symbol": "MVT",
+            "fee_bps": 100,
+            "fee_interval_s": 86400,
+            "contribution_lockup_duration_s": 604800,
+        }
+        with patch("decibel.write.get_primary_subaccount_addr", return_value=TEST_SUBACCOUNT_ADDR):
+            write_dex_sync.create_vault(
+                args,  # type: ignore[arg-type]
+                subaccount_addr=TEST_SUBACCOUNT_ADDR,
+                txn_submit_timeout=11.0,
+                txn_confirm_timeout=22.0,
+            )
+
+        kwargs = write_dex_sync._send_tx.call_args.kwargs
+        assert kwargs["txn_submit_timeout"] == 11.0
+        assert kwargs["txn_confirm_timeout"] == 22.0
+
 
 # ===========================================================================
 # Tests for DecibelWriteDexSync (representative subset)
@@ -1385,7 +1411,10 @@ class TestDecibelWriteDexSyncWithdraw:
             write_dex_sync.withdraw(amount=300)
 
         payload: InputEntryFunctionData = write_dex_sync._send_tx.call_args.args[0]
-        assert payload.function == f"{TEST_PACKAGE}::dex_accounts_entry::withdraw_from_subaccount"
+        assert (
+            payload.function
+            == f"{TEST_PACKAGE}::dex_accounts_entry::withdraw_from_cross_collateral"
+        )
         assert payload.function_arguments == [TEST_SUBACCOUNT_ADDR, TEST_USDC, 300]
 
 
@@ -1537,6 +1566,17 @@ class TestDecibelWriteDexSyncTwapOrder:
             == f"{TEST_PACKAGE}::dex_accounts_entry::cancel_twap_orders_to_subaccount"
         )
         assert payload.function_arguments[2] == 55  # int conversion
+
+    def test_cancel_twap_order_accepts_int_order_id(
+        self, write_dex_sync: DecibelWriteDexSync
+    ) -> None:
+        """Sync takes `int | str` like the async method, not `str` only."""
+        market_addr = "0x" + "11" * 32
+        with patch("decibel.write.get_primary_subaccount_addr", return_value=TEST_SUBACCOUNT_ADDR):
+            write_dex_sync.cancel_twap_order(market_addr=market_addr, order_id=55)
+
+        payload: InputEntryFunctionData = write_dex_sync._send_tx.call_args.args[0]
+        assert payload.function_arguments[2] == 55
 
 
 class TestDecibelWriteDexSyncVaultOperations:

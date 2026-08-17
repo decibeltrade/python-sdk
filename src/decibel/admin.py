@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any, cast
 
 from aptos_sdk.account_address import AccountAddress
@@ -17,6 +18,8 @@ if TYPE_CHECKING:
 __all__ = [
     "DecibelAdminDex",
     "DecibelAdminDexSync",
+    "DecibelSpotAdminDex",
+    "DecibelSpotAdminDexSync",
 ]
 
 
@@ -430,11 +433,14 @@ class DecibelAdminDex(BaseSDK):
         addr: str | AccountAddress,
     ) -> int:
         addr_str = str(addr) if isinstance(addr, AccountAddress) else addr
-        result = await self._aptos.view(
+        # RestClient.view returns the raw response body, so it has to be decoded before
+        # indexing — indexing the bytes directly would yield a byte value, not the balance.
+        result_bytes = await self._aptos.view(
             "0x1::primary_fungible_store::balance",
             ["0x1::fungible_asset::Metadata"],
             [addr_str, self._config.deployment.usdc],
         )
+        result = cast("list[Any]", json.loads(result_bytes.decode("utf-8")))
         return int(result[0])
 
 
@@ -857,5 +863,164 @@ class DecibelAdminDexSync(BaseSDKSync):
                 "arguments": [addr_str, self._config.deployment.usdc],
             },
         )
+        response.raise_for_status()
         data = cast("list[Any]", response.json())
         return int(data[0])
+
+
+class DecibelSpotAdminDex(BaseSDK):
+    """Admin operations for the Spot DEX (``spot_admin_apis``).
+
+    Separate from perp's :class:`DecibelAdminDex`; the entries require the deployer / owner
+    of the ``@decibel_dex`` code object.
+    """
+
+    def __init__(
+        self,
+        config: DecibelConfig,
+        account: Account,
+        opts: BaseSDKOptions | None = None,
+    ) -> None:
+        super().__init__(config, account, opts)
+
+    async def set_usdc_quote_metadata(self, usdc_metadata_addr: str) -> dict[str, Any]:
+        """Bind the canonical USDC quote metadata.
+
+        Required before :meth:`register_market`, which otherwise aborts with
+        ``EUSDC_QUOTE_NOT_BOUND``. Idempotent.
+        """
+        pkg = self._config.deployment.package
+        return await self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::spot_admin_apis::set_usdc_quote_metadata",
+                type_arguments=[],
+                function_arguments=[usdc_metadata_addr],
+            )
+        )
+
+    async def register_market(
+        self,
+        name: str,
+        base_asset: str,
+        quote_asset: str,
+        tick_size: int,
+        lot_size: int,
+        min_size: int,
+        async_matching_enabled: bool,
+        min_price: int,
+        max_price: int,
+    ) -> dict[str, Any]:
+        """Register a base/quote spot market.
+
+        ``tick_size`` / ``min_price`` / ``max_price`` are raw quote units per whole base unit;
+        ``lot_size`` / ``min_size`` are raw base units. On-chain requires
+        ``(tick_size * lot_size) % 10^base_decimals == 0`` and ``min_size % lot_size == 0``.
+        """
+        pkg = self._config.deployment.package
+        return await self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::spot_admin_apis::register_market",
+                type_arguments=[],
+                function_arguments=[
+                    name,
+                    base_asset,
+                    quote_asset,
+                    str(tick_size),
+                    str(lot_size),
+                    str(min_size),
+                    async_matching_enabled,
+                    str(min_price),
+                    str(max_price),
+                ],
+            )
+        )
+
+    async def list_market_addresses(self) -> list[str]:
+        """Addresses of all registered spot markets."""
+        pkg = self._config.deployment.package
+        result_bytes = await self._aptos.view(
+            f"{pkg}::spot_engine::list_markets",
+            [],
+            [],
+        )
+        result = cast("list[Any]", json.loads(result_bytes.decode("utf-8")))
+        return [str(addr) for addr in cast("list[Any]", result[0])]
+
+
+class DecibelSpotAdminDexSync(BaseSDKSync):
+    """Sync mirror of :class:`DecibelSpotAdminDex`."""
+
+    def __init__(
+        self,
+        config: DecibelConfig,
+        account: Account,
+        opts: BaseSDKOptionsSync | None = None,
+    ) -> None:
+        super().__init__(config, account, opts)
+
+    def set_usdc_quote_metadata(self, usdc_metadata_addr: str) -> dict[str, Any]:
+        """Bind the canonical USDC quote metadata.
+
+        Required before :meth:`register_market`, which otherwise aborts with
+        ``EUSDC_QUOTE_NOT_BOUND``. Idempotent.
+        """
+        pkg = self._config.deployment.package
+        return self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::spot_admin_apis::set_usdc_quote_metadata",
+                type_arguments=[],
+                function_arguments=[usdc_metadata_addr],
+            )
+        )
+
+    def register_market(
+        self,
+        name: str,
+        base_asset: str,
+        quote_asset: str,
+        tick_size: int,
+        lot_size: int,
+        min_size: int,
+        async_matching_enabled: bool,
+        min_price: int,
+        max_price: int,
+    ) -> dict[str, Any]:
+        """Register a base/quote spot market.
+
+        ``tick_size`` / ``min_price`` / ``max_price`` are raw quote units per whole base unit;
+        ``lot_size`` / ``min_size`` are raw base units. On-chain requires
+        ``(tick_size * lot_size) % 10^base_decimals == 0`` and ``min_size % lot_size == 0``.
+        """
+        pkg = self._config.deployment.package
+        return self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::spot_admin_apis::register_market",
+                type_arguments=[],
+                function_arguments=[
+                    name,
+                    base_asset,
+                    quote_asset,
+                    str(tick_size),
+                    str(lot_size),
+                    str(min_size),
+                    async_matching_enabled,
+                    str(min_price),
+                    str(max_price),
+                ],
+            )
+        )
+
+    def list_market_addresses(self) -> list[str]:
+        """Addresses of all registered spot markets."""
+        pkg = self._config.deployment.package
+        response = self._http_client.post(
+            f"{self._config.fullnode_url}/view",
+            json={
+                "function": f"{pkg}::spot_engine::list_markets",
+                "type_arguments": [],
+                "arguments": [],
+            },
+        )
+        response.raise_for_status()
+        data = cast("list[Any]", response.json())
+        return [str(addr) for addr in cast("list[Any]", data[0])]

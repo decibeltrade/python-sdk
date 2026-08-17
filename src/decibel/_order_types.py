@@ -11,10 +11,14 @@ __all__ = [
     "OrderEventTriggerCondition",
     "OrderEventOrderId",
     "OrderEvent",
+    "SpotOrderPendingCbsEvent",
     "TwapEvent",
     "PlaceOrderSuccess",
     "PlaceOrderFailure",
     "PlaceOrderResult",
+    "PlaceSpotOrderSuccess",
+    "PlaceSpotOrderFailure",
+    "PlaceSpotOrderResult",
     "PlaceBulkOrdersSuccess",
     "PlaceBulkOrdersFailure",
     "PlaceBulkOrdersResult",
@@ -64,6 +68,24 @@ class OrderEvent(BaseModel):
     user: str
 
 
+class SpotOrderPendingCbsEvent(BaseModel):
+    """Emitted when a spot order is queued behind a rate-limited CBS withdrawal.
+
+    The transaction succeeded, but the order is not on the book yet.
+    """
+
+    order_id: str
+    withdraw_request_id: str
+    subaccount_addr: str
+    market: str | dict[str, Any]
+    price: str
+    orig_size: str
+    is_bid: bool
+    metadata: str | dict[str, Any]
+    pfs_balance: str
+    created_at: str
+
+
 class TwapEvent(BaseModel):
     account: str
     duration_s: str
@@ -92,6 +114,26 @@ class PlaceOrderFailure(BaseModel):
 
 
 PlaceOrderResult = PlaceOrderSuccess | PlaceOrderFailure
+
+
+class PlaceSpotOrderSuccess(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    success: Literal[True] = True
+    order_id: str | None = Field(default=None, alias="orderId")
+    #: True when the order was queued behind a rate-limited CBS withdrawal
+    #: (:class:`SpotOrderPendingCbsEvent`) instead of reaching the book in this transaction.
+    #: Poll the order endpoints for the real acknowledgment.
+    pending_cbs: bool = Field(default=False, alias="pendingCbs")
+    transaction_hash: str = Field(alias="transactionHash")
+
+
+class PlaceSpotOrderFailure(BaseModel):
+    success: Literal[False] = False
+    error: str
+
+
+PlaceSpotOrderResult = PlaceSpotOrderSuccess | PlaceSpotOrderFailure
 
 
 class PlaceBulkOrdersSuccess(BaseModel):

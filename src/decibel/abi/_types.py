@@ -46,6 +46,8 @@ class ABIData(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     package_address: str = Field(alias="packageAddress")
+    #: Package the ``CAMPAIGN_MODULES`` ABIs were fetched from, when the deployment has one.
+    campaign_package_address: str | None = Field(default=None, alias="campaignPackageAddress")
     network: str
     fullnode_url: str = Field(alias="fullnodeUrl")
     fetched_at: str = Field(alias="fetchedAt")

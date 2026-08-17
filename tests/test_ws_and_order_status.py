@@ -30,6 +30,7 @@ _DEPLOYMENT = Deployment(
     usdc="0xusdc",
     testc="0xtestc",
     perp_engine_global="0xperp",
+    spot_engine_global="0xspot",
 )
 
 

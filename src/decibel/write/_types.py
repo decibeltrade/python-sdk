@@ -26,6 +26,15 @@ __all__ = [
     "DelegateDexActionsArgs",
     "PlaceBulkOrdersArgs",
     "CancelBulkOrderArgs",
+    "PlaceSpotOrderArgs",
+    "CancelSpotOrderArgs",
+    "PlaceSpotBulkOrderArgs",
+    "CancelSpotBulkOrderArgs",
+    "CancelSpotBulkOrderAtPriceLevelArgs",
+    "ApproveSpotBuilderFeeArgs",
+    "RevokeSpotBuilderFeeArgs",
+    "SetHoldAsNonCollateralArgs",
+    "ProcessSpotPendingRequestsArgs",
 ]
 
 
@@ -188,3 +197,85 @@ class CancelBulkOrderArgs(TypedDict, total=False):
     market_name: str
     subaccount_addr: str | None
     account_override: Account | None
+
+
+# --- Spot ---------------------------------------------------------------------------------
+#
+# Spot markets are addressed either by name (derived through `get_spot_market_addr`, which is
+# NOT the perp derivation) or by object address directly. Every spot write below accepts both
+# and requires exactly one.
+
+
+class PlaceSpotOrderArgs(TypedDict, total=False):
+    market_name: str | None
+    market_addr: str | None
+    price: float
+    size: float
+    is_buy: bool
+    time_in_force: TimeInForce
+    builder_addr: str | None
+    builder_fee: float | None
+    subaccount_addr: str | None
+    account_override: Account | None
+    tick_size: float | None
+
+
+class CancelSpotOrderArgs(TypedDict, total=False):
+    order_id: int | str
+    market_name: str | None
+    market_addr: str | None
+    subaccount_addr: str | None
+    account_override: Account | None
+
+
+class PlaceSpotBulkOrderArgs(TypedDict, total=False):
+    market_name: str | None
+    market_addr: str | None
+    sequence_number: int
+    bid_prices: list[int]
+    bid_sizes: list[int]
+    ask_prices: list[int]
+    ask_sizes: list[int]
+    builder_addr: str | None
+    builder_fee: float | None
+    subaccount_addr: str | None
+    account_override: Account | None
+
+
+class CancelSpotBulkOrderArgs(TypedDict, total=False):
+    market_name: str | None
+    market_addr: str | None
+    subaccount_addr: str | None
+    account_override: Account | None
+
+
+class CancelSpotBulkOrderAtPriceLevelArgs(TypedDict, total=False):
+    price: int
+    is_buy: bool
+    market_name: str | None
+    market_addr: str | None
+    subaccount_addr: str | None
+    account_override: Account | None
+
+
+class ApproveSpotBuilderFeeArgs(TypedDict):
+    builder_addr: str
+    max_fee: int | float
+    subaccount_addr: NotRequired[str | None]
+
+
+class RevokeSpotBuilderFeeArgs(TypedDict):
+    builder_addr: str
+    subaccount_addr: NotRequired[str | None]
+
+
+class SetHoldAsNonCollateralArgs(TypedDict):
+    asset_addr: str
+    hold: bool
+    subaccount_addr: NotRequired[str | None]
+
+
+class ProcessSpotPendingRequestsArgs(TypedDict, total=False):
+    max_fills: int
+    market_name: str | None
+    market_addr: str | None

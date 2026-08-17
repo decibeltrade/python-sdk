@@ -66,6 +66,10 @@ class AbiRegistry:
         return self.abi_data.package_address
 
     @property
+    def campaign_package_address(self) -> str | None:
+        return self.abi_data.campaign_package_address
+
+    @property
     def modules(self) -> list[str]:
         return self.abi_data.modules
 
