@@ -34,7 +34,7 @@ async def main() -> None:
 
     # For spot rows, px_decimals is the quote asset's decimals and sz_decimals the base's.
     price = amount_to_chain_units(4.0, market.px_decimals)
-    size = amount_to_chain_units(1.0, market.sz_decimals)
+    size = amount_to_chain_units(10.0, market.sz_decimals)
 
     write = DecibelWriteDex(
         TESTNET_CONFIG,
