@@ -715,6 +715,26 @@ class TestUserActiveTwapsReader:
 
 
 class TestUserBulkOrdersReader:
+    def test_previous_seq_num_is_optional(self) -> None:
+        """Absent on API versions predating the field, and null on rejection rows."""
+        from decibel.read._user_bulk_orders import UserBulkOrder
+
+        order = UserBulkOrder.model_validate(
+            {
+                "market": "0xmarket",
+                "sequence_number": 1,
+                "bid_prices": [],
+                "bid_sizes": [],
+                "ask_prices": [],
+                "ask_sizes": [],
+                "cancelled_bid_prices": [],
+                "cancelled_bid_sizes": [],
+                "cancelled_ask_prices": [],
+                "cancelled_ask_sizes": [],
+            }
+        )
+        assert order.previous_seq_num is None
+
     async def test_get_by_addr_no_market(self, reader_deps: ReaderDeps) -> None:
         from decibel.read._user_bulk_orders import (
             UserBulkOrder,
@@ -884,7 +904,7 @@ class TestUserOpenOrdersReader:
         assert result is response
         call_kwargs = mock_req.call_args.kwargs
         params = call_kwargs["params"]
-        assert params["user"] == "0xuser"
+        assert params["account"] == "0xuser"
         assert "limit" not in params
         assert "offset" not in params
 
@@ -937,7 +957,7 @@ class TestUserOrderHistoryReader:
         assert result is response
         call_kwargs = mock_req.call_args.kwargs
         params = call_kwargs["params"]
-        assert params["user"] == "0xuser"
+        assert params["account"] == "0xuser"
 
     async def test_get_by_addr_with_pagination(self, reader_deps: ReaderDeps) -> None:
         from decibel.read._user_order_history import UserOrderHistoryReader, UserOrders
@@ -1113,7 +1133,7 @@ class TestUserTwapHistoryReader:
         assert result is response
         call_kwargs = mock_req.call_args.kwargs
         params = call_kwargs["params"]
-        assert params["user"] == "0xuser"
+        assert params["account"] == "0xuser"
         assert params["limit"] == "100"
         assert params["offset"] == "0"
 

@@ -584,3 +584,611 @@ class TestUtilityFunctions:
 
         obj = {"key": "value", "num": 42}
         assert bigint_reviver(obj) == obj
+
+
+# ---------------------------------------------------------------------------
+# SPEC Section 2.13 — GET /api/v1/spot/asset_contexts
+# ---------------------------------------------------------------------------
+
+
+SAMPLE_SPOT_ASSET_CONTEXT: dict[str, Any] = {
+    "market_addr": "0x26f1ddaa436a7b134d5c872c032eaa66653b673bca2bb1539642094d6b113c50",
+    "name": "APT/USDC",
+    "ticker_id": "APT_USDC",
+    "base_asset_addr": "0xa",
+    "quote_asset_addr": "0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b",
+    "base_decimals": 8,
+    "quote_decimals": 6,
+    "last_price": 12.5,
+    "mid": 12.51,
+    "prev_day_price": 12.0,
+    "volume_24h_base": 1000.0,
+    "volume_24h_quote": 12500.0,
+    "high_24h": 13.0,
+    "low_24h": 11.5,
+    "timestamp_unix_ms": 1699564800000,
+}
+
+
+class TestSpotAssetContextsEndpoint:
+    """Spot asset contexts SHALL be served from GET /api/v1/spot/asset_contexts."""
+
+    async def test_endpoint_url_and_no_params(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._spot_asset_contexts import SpotAssetContextsReader
+
+        mock_transport.set_response([SAMPLE_SPOT_ASSET_CONTEXT])
+        contexts = await SpotAssetContextsReader(transport_deps).get_all()
+
+        req = mock_transport.captured_requests[0]
+        assert req.method == "GET"
+        assert req.url.endswith("/api/v1/spot/asset_contexts")
+        assert req.params is None
+        assert contexts[0].name == "APT/USDC"
+        assert contexts[0].base_decimals == 8
+
+    async def test_sends_bearer_token(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._spot_asset_contexts import SpotAssetContextsReader
+
+        mock_transport.set_response([])
+        await SpotAssetContextsReader(transport_deps).get_all()
+
+        assert mock_transport.captured_requests[0].headers["authorization"] == (
+            "Bearer test-api-key-123"
+        )
+
+    def test_price_fields_are_nullable(self) -> None:
+        """A market with no 24h trades SHALL parse with null prices, not fail."""
+        from decibel.read._spot_asset_contexts import SpotAssetContext
+
+        context = SpotAssetContext.model_validate(
+            {
+                **SAMPLE_SPOT_ASSET_CONTEXT,
+                "last_price": None,
+                "mid": None,
+                "prev_day_price": None,
+                "high_24h": None,
+                "low_24h": None,
+            }
+        )
+        assert context.last_price is None
+        assert context.volume_24h_base == 1000.0
+
+    def test_missing_market_addr_raises(self) -> None:
+        from decibel.read._spot_asset_contexts import SpotAssetContext
+
+        data = {**SAMPLE_SPOT_ASSET_CONTEXT}
+        del data["market_addr"]
+        with pytest.raises(ValidationError):
+            SpotAssetContext.model_validate(data)
+
+
+# ---------------------------------------------------------------------------
+# SPEC — the `asset_type` query parameter on dual-product endpoints
+# ---------------------------------------------------------------------------
+
+
+class TestAssetTypeQueryParam:
+    """Dual-product endpoints SHALL send asset_type=perp by default and omit it for "all"."""
+
+    async def test_open_orders_defaults_to_perp(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_open_orders import UserOpenOrdersReader
+
+        mock_transport.set_response({"items": [], "total_count": 0})
+        await UserOpenOrdersReader(transport_deps).get_by_addr(sub_addr="0xuser")
+
+        params = mock_transport.captured_requests[0].params
+        assert params is not None
+        assert params["asset_type"] == "perp"
+        # The spec names this param `account`, not `user`.
+        assert params["account"] == "0xuser"
+
+    async def test_open_orders_spot_filter(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_open_orders import UserOpenOrdersReader
+
+        mock_transport.set_response({"items": [], "total_count": 0})
+        await UserOpenOrdersReader(transport_deps).get_by_addr(sub_addr="0xuser", asset_type="spot")
+
+        params = mock_transport.captured_requests[0].params
+        assert params is not None
+        assert params["asset_type"] == "spot"
+
+    async def test_all_omits_the_param(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        """ "all" is an SDK-side concept: the merged view is what the API returns with no filter."""
+        from decibel.read._user_open_orders import UserOpenOrdersReader
+
+        mock_transport.set_response({"items": [], "total_count": 0})
+        await UserOpenOrdersReader(transport_deps).get_by_addr(sub_addr="0xuser", asset_type="all")
+
+        params = mock_transport.captured_requests[0].params
+        assert params is not None
+        assert "asset_type" not in params
+
+    async def test_order_history_sends_asset_type(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_order_history import UserOrderHistoryReader
+
+        mock_transport.set_response({"items": [], "total_count": 0})
+        await UserOrderHistoryReader(transport_deps).get_by_addr(
+            sub_addr="0xuser", asset_type="spot", limit=10
+        )
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/order_history" in req.url
+        assert req.params == {"account": "0xuser", "limit": "10", "asset_type": "spot"}
+
+    async def test_bulk_orders_sends_asset_type(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_bulk_orders import UserBulkOrdersReader
+
+        mock_transport.set_response([])
+        await UserBulkOrdersReader(transport_deps).get_by_addr(sub_addr="0xuser")
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/bulk_orders" in req.url
+        assert req.params == {"account": "0xuser", "market": "all", "asset_type": "perp"}
+
+    def test_rows_may_omit_asset_type(self) -> None:
+        """Pre-spot API versions omit asset_type entirely; those rows SHALL still parse."""
+        order = UserOpenOrder.model_validate(TestOrderDtoValidation.VALID_ORDER)
+        assert order.asset_type is None
+
+
+# ---------------------------------------------------------------------------
+# SPEC — GET /api/v1/orders (single-order lookup)
+# ---------------------------------------------------------------------------
+
+
+class TestSingleOrderEndpoint:
+    """The point lookup SHALL accept exactly one of order_id / client_order_id."""
+
+    RESPONSE: dict[str, Any] = {
+        "status": "Open",
+        "details": "",
+        "order": {
+            "parent": "0xparent",
+            "market": "0xmarket",
+            "client_order_id": "42",
+            "order_id": "1001",
+            "status": "Open",
+            "order_type": "Limit",
+            "trigger_condition": "None",
+            "order_direction": "Buy",
+            "orig_size": 1.0,
+            "remaining_size": 1.0,
+            "size_delta": 0.0,
+            "price": 100.0,
+            "is_buy": True,
+            "is_reduce_only": False,
+            "details": "",
+            "is_tpsl": False,
+            "tp_trigger_price": None,
+            "tp_limit_price": None,
+            "sl_trigger_price": None,
+            "sl_limit_price": None,
+            "transaction_version": 1,
+            "unix_ms": 1699564800000,
+        },
+    }
+
+    async def test_lookup_by_order_id_omits_asset_type(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        """Unset asset_type lets the API check perp then fall through to spot."""
+        from decibel.read._user_orders import UserOrdersReader
+
+        mock_transport.set_response(self.RESPONSE)
+        result = await UserOrdersReader(transport_deps).get_order(
+            sub_addr="0xuser", market="0xmarket", order_id="1001"
+        )
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/orders" in req.url
+        assert req.params == {"account": "0xuser", "market": "0xmarket", "order_id": "1001"}
+        assert result.order.order_id == "1001"
+
+    async def test_lookup_by_client_order_id(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_orders import UserOrdersReader
+
+        mock_transport.set_response(self.RESPONSE)
+        await UserOrdersReader(transport_deps).get_order(
+            sub_addr="0xuser", market="0xmarket", client_order_id="42"
+        )
+
+        params = mock_transport.captured_requests[0].params
+        assert params is not None
+        assert params["client_order_id"] == "42"
+        assert "order_id" not in params
+
+    async def test_explicit_asset_type_is_forwarded(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel._asset_type import AssetTypeName
+        from decibel.read._user_orders import UserOrdersReader
+
+        mock_transport.set_response(self.RESPONSE)
+        await UserOrdersReader(transport_deps).get_order(
+            sub_addr="0xuser",
+            market="0xmarket",
+            order_id="1001",
+            asset_type=AssetTypeName.SPOT,
+        )
+
+        params = mock_transport.captured_requests[0].params
+        assert params is not None
+        assert params["asset_type"] == "spot"
+
+    async def test_both_ids_rejected_before_any_request(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_orders import UserOrdersReader
+
+        with pytest.raises(ValueError, match="exactly one"):
+            await UserOrdersReader(transport_deps).get_order(
+                sub_addr="0xuser", market="0xmarket", order_id="1", client_order_id="2"
+            )
+        assert mock_transport.captured_requests == []
+
+
+# ---------------------------------------------------------------------------
+# SPEC — GET /api/v1/bulk_order_status and /api/v1/bulk_order_fills
+# ---------------------------------------------------------------------------
+
+
+class TestBulkOrderStatusAndFills:
+    BULK_ORDER: dict[str, Any] = {
+        "market": "0xmarket",
+        "sequence_number": 7,
+        "previous_seq_num": 6,
+        "bid_prices": [100.0],
+        "bid_sizes": [1.0],
+        "ask_prices": [101.0],
+        "ask_sizes": [1.0],
+        "cancelled_bid_prices": [],
+        "cancelled_bid_sizes": [],
+        "cancelled_ask_prices": [],
+        "cancelled_ask_sizes": [],
+    }
+
+    async def test_status_endpoint_params(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_bulk_orders import UserBulkOrdersReader
+
+        mock_transport.set_response(
+            {"status": "Placed", "details": "", "bulk_order": self.BULK_ORDER}
+        )
+        status = await UserBulkOrdersReader(transport_deps).get_status(
+            sub_addr="0xuser", market="0xmarket", sequence_number=7
+        )
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/bulk_order_status" in req.url
+        assert req.params == {
+            "account": "0xuser",
+            "market": "0xmarket",
+            "sequence_number": "7",
+            "asset_type": "perp",
+        }
+        assert status.bulk_order.sequence_number == 7
+
+    async def test_fills_endpoint_params(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_bulk_orders import UserBulkOrdersReader
+
+        mock_transport.set_response({"items": [], "total_count": 0})
+        await UserBulkOrdersReader(transport_deps).get_fills(
+            sub_addr="0xuser",
+            market="0xmarket",
+            start_sequence_number=1,
+            end_sequence_number=9,
+            limit=50,
+            offset=10,
+            asset_type="all",
+        )
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/bulk_order_fills" in req.url
+        assert req.params == {
+            "account": "0xuser",
+            "market": "0xmarket",
+            "start_sequence_number": "1",
+            "end_sequence_number": "9",
+            "limit": "50",
+            "offset": "10",
+        }
+
+    async def test_fills_minimal_params(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_bulk_orders import UserBulkOrdersReader
+
+        mock_transport.set_response({"items": [], "total_count": 0})
+        await UserBulkOrdersReader(transport_deps).get_fills(sub_addr="0xuser")
+
+        assert mock_transport.captured_requests[0].params == {
+            "account": "0xuser",
+            "asset_type": "perp",
+        }
+
+
+# ---------------------------------------------------------------------------
+# SPEC — GET /api/v1/user_fee_rates
+# ---------------------------------------------------------------------------
+
+
+class TestUserFeeRatesEndpoint:
+    SCHEDULE: dict[str, Any] = {
+        "taker": 0.00034,
+        "maker": 0.00011,
+        "tiers": {"vip": [], "market_maker": []},
+        "referral_discount": 0.0,
+    }
+    RESPONSE: dict[str, Any] = {
+        "account": "0xuser",
+        "daily_user_volume": [],
+        "fee_schedule": SCHEDULE,
+        "user_taker_rate": 0.00034,
+        "user_maker_rate": 0.00011,
+        "fee_tier": 0,
+        "active_referral_discount": 0.0,
+    }
+
+    async def test_endpoint_and_params(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._user_fees import UserFeesReader
+
+        mock_transport.set_response(self.RESPONSE)
+        fees = await UserFeesReader(transport_deps).get_by_addr("0xuser")
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/user_fee_rates" in req.url
+        assert req.params == {"account": "0xuser"}
+        assert fees.fee_tier == 0
+
+    def test_per_product_blocks_are_optional(self) -> None:
+        """The perp/spot split is still rolling out; legacy payloads SHALL still parse."""
+        from decibel.read._user_fees import UserFees
+
+        fees = UserFees.model_validate(self.RESPONSE)
+        assert fees.perp is None
+        assert fees.spot is None
+        assert fees.volume_weights is None
+
+    def test_cross_product_payload_parses(self) -> None:
+        from decibel.read._user_fees import UserFees
+
+        product = {
+            "fee_tier": 2,
+            "fee_schedule": self.SCHEDULE,
+            "user_taker_rate": 0.0003,
+            "user_maker_rate": 0.0001,
+            "daily_user_volume": [],
+            "total_window_volume_usd": "1000000",
+            "active_referral_discount": 0.0,
+        }
+        fees = UserFees.model_validate(
+            {
+                **self.RESPONSE,
+                "perp": product,
+                # Spot's tier comes from weighted cross-product volume, so it can differ.
+                "spot": {**product, "fee_tier": 1},
+                "weighted_volume_usd": "1500000",
+                "volume_weights": {"perp": 100.0, "spot": 50.0},
+            }
+        )
+        assert fees.perp is not None
+        assert fees.spot is not None
+        assert fees.perp.fee_tier == 2
+        assert fees.spot.fee_tier == 1
+        assert fees.volume_weights is not None
+        assert fees.volume_weights.spot == 50.0
+
+
+# ---------------------------------------------------------------------------
+# SPEC — points, streaks and campaign endpoints
+# ---------------------------------------------------------------------------
+
+
+class TestPointsEndpoints:
+    async def test_tier_endpoint(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._tier import TierReader
+
+        mock_transport.set_response({"owner": "0xowner", "total_amps": 5.0, "tiers": []})
+        await TierReader(transport_deps).get_by_owner("0xowner")
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/points/tier" in req.url
+        assert req.params == {"owner": "0xowner"}
+
+    async def test_global_stats_endpoint(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._global_points_stats import GlobalPointsStatsReader
+
+        mock_transport.set_response({"total_users": 10, "total_amps_distributed": 1.5})
+        stats = await GlobalPointsStatsReader(transport_deps).get()
+
+        req = mock_transport.captured_requests[0]
+        assert req.url.endswith("/api/v1/points/global")
+        assert req.params is None
+        assert stats.total_users == 10
+
+    async def test_streaks_endpoint_parses_camel_case(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        """The streaks route is the one points endpoint serving camelCase keys."""
+        from decibel.read._streaks import StreaksReader
+
+        mock_transport.set_response(
+            {
+                "owner": "0xowner",
+                "currentStreak": 5,
+                "streakIpoints": 12.5,
+                "streakAmpsEstimate": 3.0,
+                "graceDaysAvailable": 2,
+                "graceDaysUsed": 1,
+                "qualifyingDates": ["2026-08-16"],
+            }
+        )
+        streaks = await StreaksReader(transport_deps).get_by_owner("0xowner")
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/streaks/account" in req.url
+        assert req.params == {"owner": "0xowner"}
+        assert streaks.current_streak == 5
+        assert streaks.qualifying_dates == ["2026-08-16"]
+
+
+class TestCampaignAndWithdrawQueueEndpoints:
+    async def test_active_campaigns_endpoint(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._campaigns import CampaignsReader
+
+        mock_transport.set_response([])
+        await CampaignsReader(transport_deps).get_active()
+
+        req = mock_transport.captured_requests[0]
+        assert req.url.endswith("/api/v1/campaigns/active")
+        assert req.params is None
+
+    async def test_campaign_summary_pagination(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._campaigns import CampaignsReader
+
+        mock_transport.set_response(
+            {
+                "lifetime_earned": 0.0,
+                "ready_to_claim": 0.0,
+                "total_claimed": 0.0,
+                "breakdown_by_type": [],
+                "claims": [],
+                "year_to_date": 0.0,
+                "weekly_wow_bps": 0.0,
+                "weekly_breakdown": [],
+                "total_claims": 0,
+            }
+        )
+        await CampaignsReader(transport_deps).get_summary(
+            account_address="0xuser", limit=25, offset=50
+        )
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/campaigns/account" in req.url
+        assert req.params == {"account": "0xuser", "limit": "25", "offset": "50"}
+
+    async def test_referral_code_is_url_encoded(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._referrals import ReferralsReader
+
+        mock_transport.set_response(
+            {"referral_code": "a/b c", "is_valid": False, "is_active": False}
+        )
+        await ReferralsReader(transport_deps).validate_code("a/b c")
+
+        assert "/api/v1/referrals/code/a%2Fb%20c" in mock_transport.captured_requests[0].url
+
+    async def test_withdraw_queue_endpoint(
+        self, transport_deps: ReaderDeps, mock_transport: MockTransport
+    ) -> None:
+        from decibel.read._withdraw_queue import WithdrawQueueReader
+
+        mock_transport.set_response({"items": [], "total_count": 0})
+        await WithdrawQueueReader(transport_deps).get_by_addr(
+            sub_addr="0xuser", status="Queued", limit=5
+        )
+
+        req = mock_transport.captured_requests[0]
+        assert "/api/v1/withdraw_queue" in req.url
+        assert req.params == {"account": "0xuser", "status": "Queued", "limit": "5"}
+
+
+# ---------------------------------------------------------------------------
+# Model validation: account overview spot / secondary-collateral blocks
+# ---------------------------------------------------------------------------
+
+
+class TestAccountOverviewSpotBlocks:
+    """The spot and secondary-collateral blocks SHALL be optional and parse when present."""
+
+    def test_spot_block_absent_by_default(self) -> None:
+        overview = AccountOverview.model_validate(TestAccountOverviewValidation.MINIMAL_VALID)
+        assert overview.spot is None
+        assert overview.secondary_collateral is None
+        assert overview.cross_available_to_trade is None
+
+    def test_spot_block_parses(self) -> None:
+        overview = AccountOverview.model_validate(
+            {
+                **TestAccountOverviewValidation.MINIMAL_VALID,
+                "spot": {
+                    "positions": [
+                        {
+                            "asset_addr": "0xa",
+                            "asset_symbol": "APT",
+                            "amount": 10.0,
+                            "usd_value": 125.0,
+                            "entry_notional_usd": 120.0,
+                            "unrealized_pnl_usd": 5.0,
+                        }
+                    ],
+                    "total_usd": 125.0,
+                    "in_flight_orders": [
+                        {
+                            "market_addr": "0xmarket",
+                            "order_id": "1",
+                            "is_bid": True,
+                            "reserved_asset": "0xusdc",
+                            "reserved_amount": 50.0,
+                            "reserved_usd_value": 50.0,
+                        }
+                    ],
+                },
+                "cross_available_to_trade": 42.0,
+            }
+        )
+        assert overview.spot is not None
+        assert overview.spot.positions[0].asset_symbol == "APT"
+        assert overview.spot.in_flight_orders[0].is_bid is True
+        # metrics is absent until the subaccount has traded spot.
+        assert overview.spot.metrics is None
+        assert overview.cross_available_to_trade == 42.0
+
+    def test_secondary_collateral_parses(self) -> None:
+        overview = AccountOverview.model_validate(
+            {
+                **TestAccountOverviewValidation.MINIMAL_VALID,
+                "secondary_collateral": [
+                    {
+                        "asset_type": "0xdlp",
+                        "amount": 3.0,
+                        "value_in_usdc": 30.0,
+                        "nav_per_unit": 11.0,
+                        "haircut_bps": 900.0,
+                        "withdrawable_amount": 1.0,
+                    }
+                ],
+            }
+        )
+        assert overview.secondary_collateral is not None
+        assert overview.secondary_collateral[0].haircut_bps == 900.0

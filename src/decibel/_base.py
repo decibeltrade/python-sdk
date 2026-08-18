@@ -32,7 +32,7 @@ from ._fee_pay import (
 )
 from ._transaction_builder import build_simple_transaction_sync
 from ._utils import generate_random_replay_protection_nonce, get_primary_subaccount_addr
-from .abi import AbiRegistry
+from .abi import AbiRegistry, MoveFunction
 
 if TYPE_CHECKING:
     from aptos_sdk.account import Account
@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from ._constants import DecibelConfig
     from ._gas_price_manager import GasPriceManager, GasPriceManagerSync
     from ._transaction_builder import InputEntryFunctionData, SimpleTransaction
-    from .abi import MoveFunction
 
 __all__ = [
     "BaseSDK",
@@ -58,10 +57,55 @@ MAX_GAS_UNITS_LIMIT = 2_000_000
 _POLL_DELAYS = (0.2, 0.2, 0.5, 0.5, 1.0)
 
 
+#: Timeout for the on-demand module fetch that backs the bundled-ABI miss path.
+ABI_FETCH_TIMEOUT = 10.0
+
+_HTTP_NOT_FOUND = 404
+
+
 def _poll_delay(index: int) -> float:
     if index < len(_POLL_DELAYS):
         return _POLL_DELAYS[index]
     return 1.0
+
+
+def _split_function_id(function_id: str) -> tuple[str, str] | None:
+    """``"0xpkg::module::fn"`` -> ``("0xpkg", "module")``, or ``None`` if malformed."""
+    parts = function_id.split("::")
+    if len(parts) != 3 or not all(parts):
+        return None
+    return parts[0], parts[1]
+
+
+def _module_abi_url(fullnode_url: str, module_addr: str, module_name: str) -> str:
+    return f"{fullnode_url}/accounts/{module_addr}/module/{module_name}"
+
+
+def _parse_module_functions(
+    module_addr: str, module_name: str, payload: object
+) -> dict[str, MoveFunction]:
+    """Index a fullnode module response by function id.
+
+    Keyed on ``module_addr`` exactly as it appeared in the requested function id, so lookups match
+    without needing to canonicalize either side.
+    """
+    if not isinstance(payload, dict):
+        return {}
+    abi = cast("dict[str, Any]", payload).get("abi")
+    if not isinstance(abi, dict):
+        return {}
+    exposed: object = cast("dict[str, Any]", abi).get("exposed_functions", [])
+    if not isinstance(exposed, list):
+        return {}
+
+    functions: dict[str, MoveFunction] = {}
+    for raw in cast("list[Any]", exposed):
+        try:
+            func = MoveFunction.model_validate(raw)
+        except ValueError:
+            continue
+        functions[f"{module_addr}::{module_name}::{func.name}"] = func
+    return functions
 
 
 @dataclass
@@ -95,6 +139,8 @@ class BaseSDK:
         self._account = account
         self._chain_id = config.chain_id
         self._abi_registry = AbiRegistry(chain_id=config.chain_id)
+        self._fetched_abis: dict[str, MoveFunction] = {}
+        self._fetched_modules: set[str] = set()
         self._aptos = RestClient(config.fullnode_url)
 
         opts = opts or BaseSDKOptions()
@@ -158,7 +204,54 @@ class BaseSDK:
         await self.close()
 
     def _get_abi(self, function_id: str) -> MoveFunction | None:
-        return self._abi_registry.get_function(function_id)
+        bundled = self._abi_registry.get_function(function_id)
+        if bundled is not None:
+            return bundled
+        return self._fetched_abis.get(function_id)
+
+    async def _resolve_abi(self, function_id: str) -> MoveFunction | None:
+        """The bundled ABI for ``function_id``, falling back to a fullnode fetch.
+
+        The bundled JSON only covers the modules :mod:`decibel.abi.generate` knows about, so a
+        function from any other module — a newly published one, or a package the generator does not
+        list — would otherwise be unbuildable. Fetching it costs one extra request the first time a
+        module is touched; results (including "module not there") are cached for the SDK's lifetime.
+        """
+        cached = self._get_abi(function_id)
+        if cached is not None:
+            return cached
+
+        parsed = _split_function_id(function_id)
+        if parsed is None:
+            logger.warning("Malformed Move function id: %s", function_id)
+            return None
+        module_addr, module_name = parsed
+        module_key = f"{module_addr}::{module_name}"
+        if module_key in self._fetched_modules:
+            return None
+
+        url = _module_abi_url(self._config.fullnode_url, module_addr, module_name)
+        try:
+            response = await self._http_client.get(
+                url, headers=self._build_node_headers(), timeout=ABI_FETCH_TIMEOUT
+            )
+        except httpx.HTTPError as e:
+            # Transient: leave the module uncached so the next attempt retries it.
+            logger.warning("Failed to fetch ABI for %s: %s", module_key, e)
+            return None
+
+        if response.status_code == _HTTP_NOT_FOUND:
+            self._fetched_modules.add(module_key)
+            logger.warning("Module %s is not published on this network", module_key)
+            return None
+        if not response.is_success:
+            logger.warning("Failed to fetch ABI for %s: HTTP %d", module_key, response.status_code)
+            return None
+
+        self._fetched_modules.add(module_key)
+        functions = _parse_module_functions(module_addr, module_name, response.json())
+        self._fetched_abis.update(functions)
+        return self._fetched_abis.get(function_id)
 
     async def build_tx(
         self,
@@ -168,7 +261,7 @@ class BaseSDK:
         max_gas_amount: int | None = None,
         gas_unit_price: int | None = None,
     ) -> SimpleTransaction:
-        function_abi = self._get_abi(data.function)
+        function_abi = await self._resolve_abi(data.function)
 
         nonce = generate_random_replay_protection_nonce()
         if nonce is None:
@@ -487,6 +580,8 @@ class BaseSDKSync:
         self._account = account
         self._chain_id = config.chain_id
         self._abi_registry = AbiRegistry(chain_id=config.chain_id)
+        self._fetched_abis: dict[str, MoveFunction] = {}
+        self._fetched_modules: set[str] = set()
 
         opts = opts or BaseSDKOptionsSync()
         self._skip_simulate = opts.skip_simulate
@@ -545,7 +640,51 @@ class BaseSDKSync:
         self.close()
 
     def _get_abi(self, function_id: str) -> MoveFunction | None:
-        return self._abi_registry.get_function(function_id)
+        bundled = self._abi_registry.get_function(function_id)
+        if bundled is not None:
+            return bundled
+        return self._fetched_abis.get(function_id)
+
+    def _resolve_abi(self, function_id: str) -> MoveFunction | None:
+        """The bundled ABI for ``function_id``, falling back to a fullnode fetch.
+
+        See :meth:`BaseSDK._resolve_abi`.
+        """
+        cached = self._get_abi(function_id)
+        if cached is not None:
+            return cached
+
+        parsed = _split_function_id(function_id)
+        if parsed is None:
+            logger.warning("Malformed Move function id: %s", function_id)
+            return None
+        module_addr, module_name = parsed
+        module_key = f"{module_addr}::{module_name}"
+        if module_key in self._fetched_modules:
+            return None
+
+        url = _module_abi_url(self._config.fullnode_url, module_addr, module_name)
+        try:
+            response = self._http_client.get(
+                url, headers=self._build_node_headers(), timeout=ABI_FETCH_TIMEOUT
+            )
+        except httpx.HTTPError as e:
+            # Transient: leave the module uncached so the next attempt retries it.
+            logger.warning("Failed to fetch ABI for %s: %s", module_key, e)
+            return None
+
+        if response.status_code == _HTTP_NOT_FOUND:
+            self._fetched_modules.add(module_key)
+            logger.warning("Module %s is not published on this network", module_key)
+            return None
+        if not response.is_success:
+            logger.warning("Failed to fetch ABI for %s: HTTP %d", module_key, response.status_code)
+            return None
+
+        self._fetched_modules.add(module_key)
+        functions = _parse_module_functions(module_addr, module_name, response.json())
+        self._fetched_abis.update(functions)
+        return self._fetched_abis.get(function_id)
 
     def build_tx(
         self,
@@ -555,7 +694,7 @@ class BaseSDKSync:
         max_gas_amount: int | None = None,
         gas_unit_price: int | None = None,
     ) -> SimpleTransaction:
-        function_abi = self._get_abi(data.function)
+        function_abi = self._resolve_abi(data.function)
 
         nonce = generate_random_replay_protection_nonce()
         if nonce is None:

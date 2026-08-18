@@ -14,9 +14,9 @@
 5. [TWAP Endpoints](#5-twap-endpoints)
 6. [Bulk Order Endpoints](#6-bulk-order-endpoints)
 7. [Vault Endpoints](#7-vault-endpoints)
-8. [Analytics Endpoints](#8-analytics-endpoints)
-9. [Referral Endpoints](#9-referral-endpoints)
-10. [Predeposit Endpoints](#10-predeposit-endpoints)
+8. [Analytics, Points & Streaks Endpoints](#8-analytics-points--streaks-endpoints)
+9. [Referral & Affiliate Endpoints](#9-referral--affiliate-endpoints)
+10. [Rewards, Campaign & Predeposit Endpoints](#10-rewards-campaign--predeposit-endpoints)
 11. [Shared Data Schemas](#11-shared-data-schemas)
 
 ---
@@ -25,16 +25,18 @@
 
 ### 1.1 Protocol
 
-All REST endpoints SHALL use HTTPS GET requests. There are no POST/PUT/DELETE endpoints in the read API (writes go on-chain).
+All REST endpoints SHALL use HTTPS. Reads are GET; trading writes go on-chain rather than through
+this API.
 
-**Exception:** Subaccount rename uses PATCH (see Section 4).
+**Exceptions:** subaccount rename uses PATCH (see Section 4), and referral-code redemption uses POST
+(see Section 9.5).
 
 ### 1.2 Required Headers
 
 | Header | Value | Required |
 |--------|-------|----------|
 | `Authorization` | `Bearer <API_KEY>` | YES |
-| `Content-Type` | `application/json` | For PATCH only |
+| `Content-Type` | `application/json` | For PATCH and POST only |
 
 > **Note:** The `Origin` header is required by the server for browser-based requests but the SDK does NOT send it. Server-side enforcement may vary by deployment.
 
@@ -47,6 +49,32 @@ All successful responses SHALL return JSON with `Content-Type: application/json`
 - Pagination parameters SHALL be sent as flat query params: `?limit=10&offset=0`
 - Sorting parameters SHALL be sent as: `?sort_key=volume&sort_dir=DESC`
 - Filter parameters SHALL be sent as: `?from=1634567890000&to=1634654290000`
+
+### 1.5 Product Selection (`asset_type`)
+
+Decibel serves two products from one API: **perp** and **spot**. Endpoints that can return rows for
+either accept an `asset_type` query parameter:
+
+| Value | Meaning |
+|-------|---------|
+| `perp` | Perp rows only |
+| `spot` | Spot rows only |
+| *(omitted)* | Both products, merged into one response |
+
+The SDK models this as an `AssetTypeFilter` of `"perp" | "spot" | "all"`, where `"all"` means
+**omit the parameter**. List readers default to `"perp"` so pre-spot consumers are unaffected.
+
+Rows returned by dual-product endpoints carry an `asset_type` field for client-side demux. That
+field is **absent** on API versions predating spot; a row with no `asset_type` SHALL be treated as
+perp.
+
+Market addresses already encode the product — a spot market address is derived from the spot engine,
+a perp market address from the perp engine — so endpoints keyed by market address (depth, trades,
+candlesticks) need no `asset_type` parameter.
+
+**Endpoints accepting `asset_type`:** `/api/v1/open_orders`, `/api/v1/order_history`,
+`/api/v1/trade_history`, `/api/v1/orders`, `/api/v1/bulk_orders`, `/api/v1/bulk_order_status`,
+`/api/v1/bulk_order_fills`.
 
 ---
 
@@ -258,6 +286,58 @@ GET /api/v1/asset_contexts
 
 **Schema:** Array of `AssetContextDto`
 
+**Notes:**
+- Perp markets only. Spot markets are served by Section 2.6.
+
+---
+
+### 2.6 Get Spot Asset Contexts
+
+24h stats and a current price snapshot for every registered spot market. The spot counterpart of
+Section 2.5; perp-only concepts (funding, open interest, mark/oracle prices) are absent.
+
+```
+GET /api/v1/spot/asset_contexts
+```
+
+**Query Parameters:** None
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "market_addr": "0x...",
+    "name": "APT/USDC",
+    "ticker_id": "APT_USDC",
+    "base_asset_addr": "0xa",
+    "quote_asset_addr": "0x...",
+    "base_decimals": 8,
+    "quote_decimals": 6,
+    "last_price": 12.5,
+    "mid": 12.51,
+    "prev_day_price": 12.0,
+    "volume_24h_base": 1000.0,
+    "volume_24h_quote": 12500.0,
+    "high_24h": 13.0,
+    "low_24h": 11.5,
+    "timestamp_unix_ms": 1699564800000
+  }
+]
+```
+
+**Schema:** Array of `SpotAssetContextDto` (Section 11.9)
+
+**Null semantics:**
+- `last_price`, `high_24h`, `low_24h` are null when the market had no trades in the last 24h
+- `mid` is null unless both book sides have resting liquidity
+- `prev_day_price` is null for markets that never traded before the 24h boundary — render 24h change
+  as n/a rather than 0
+- 24h change is derived client-side: `(last_price - prev_day_price) / prev_day_price`
+
+**Notes:**
+- `market_addr` matches the address derived from the market name and the spot engine; a client that
+  derives addresses locally SHALL get the same value.
+
 ---
 
 ## 3. Account Endpoints
@@ -301,9 +381,52 @@ GET /api/v1/account_overviews
   "average_leverage": null,
   "cross_account_position": null,
   "vault_equity": 259.73,
+  "free_vault_equity": 120.0,
   "net_deposits": 30277044.96,
   "liquidation_fees_paid": 45.5,
-  "liquidation_losses": null
+  "liquidation_losses": null,
+  "perp_equity_haircutted": 9950.0,
+  "fee_income": null,
+  "cross_available_to_trade": 9843.79,
+  "secondary_collateral": [
+    {
+      "asset_type": "0x...",
+      "amount": 3.0,
+      "value_in_usdc": 30.0,
+      "nav_per_unit": 11.0,
+      "haircut_bps": 900.0,
+      "withdrawable_amount": 1.0
+    }
+  ],
+  "spot": {
+    "positions": [
+      {
+        "asset_addr": "0xa",
+        "asset_symbol": "APT",
+        "amount": 10.0,
+        "usd_value": 125.0,
+        "entry_notional_usd": 120.0,
+        "unrealized_pnl_usd": 5.0
+      }
+    ],
+    "total_usd": 125.0,
+    "in_flight_orders": [
+      {
+        "market_addr": "0x...",
+        "order_id": "1",
+        "is_bid": true,
+        "reserved_asset": "0x...",
+        "reserved_amount": 50.0,
+        "reserved_usd_value": 50.0
+      }
+    ],
+    "metrics": {
+      "cumulative_volume_usd": 5000.0,
+      "cumulative_taker_fees_usd": 1.7,
+      "cumulative_maker_fees_usd": 0.55,
+      "cumulative_realized_pnl_usd": 12.0
+    }
+  }
 }
 ```
 
@@ -313,11 +436,29 @@ GET /api/v1/account_overviews
 
 **Nullable fields:** `all_time_return`, `average_cash_position`, `average_leverage`, `cross_account_position`, `liquidation_fees_paid`, `liquidation_losses`, `max_drawdown`, `net_deposits`, `pnl_90d`, `realized_pnl`, `sharpe_ratio`, `vault_equity`, `volume`, `weekly_win_rate_12w`
 
+**Optional fields (may be absent entirely):** `cross_available_to_trade`, `fee_income`, `free_vault_equity`, `margin_deficit`, `net_deposits`, `perp_equity_haircutted`, `secondary_collateral`, `spot`, `vault_equity`
+
 **Edge behaviors:**
 - `margin_deficit`: 0 when healthy, negative when account has margin hole
 - `liquidation_losses`: null for regular users (only vault/BLP accounts)
 - Performance fields are null unless `include_performance=true`
 - `volume` is null unless `volume_window` is provided
+- `fee_income`: non-trade protocol fee distributions (vault/BLP accounts only); not included in
+  `realized_pnl`
+
+**Spot & collateral blocks:**
+- `spot` is null for wallet-only owners and when spot enrichment fails. `spot.metrics` is absent
+  until the subaccount has traded spot.
+- `spot.positions` covers assets held in the per-user fungible store, including USDC as a PnL-less
+  position; `spot.in_flight_orders` covers amounts locked in open spot orders (quote for bids, base
+  for asks). `spot.total_usd` counts both.
+- `entry_notional_usd` is 0 when the asset was acquired without an on-book spot trade (e.g. an FA
+  transfer in), so `unrealized_pnl_usd` then equals `usd_value`.
+- `secondary_collateral` is null when no non-USDC collateral exists or oracle data is unavailable.
+- `vault_equity` is display-only: do NOT sum it with `perp_equity_balance`, since the pledged portion
+  is already counted there via `secondary_collateral`. Use `free_vault_equity` for total-wealth math.
+- `cross_available_to_trade` is buying power across all collateral assets:
+  `max(0, raw_free_collateral - order_margin)`.
 
 ---
 
@@ -383,6 +524,7 @@ GET /api/v1/open_orders
 | `account` | string | Yes | Subaccount address |
 | `limit` | int32 | Yes | Max results (0–1000) |
 | `offset` | int32 | Yes | Pagination offset (0–10000) |
+| `asset_type` | string | No | `"perp"` or `"spot"`; omit for both (Section 1.5) |
 
 **Response:** `200 OK` — `PaginatedResponse<OrderDto>`
 
@@ -410,10 +552,12 @@ GET /api/v1/order_history
 | `status` | string | No | `"Open"`, `"Filled"`, `"Cancelled"`, `"Expired"` |
 | `side` | string | No | `"buy"` or `"sell"` |
 | `reduce_only` | bool | No | Filter reduce-only orders |
+| `asset_type` | string | No | `"perp"` or `"spot"`; omit for both (Section 1.5) |
 
 **Response:** `200 OK` — `PaginatedResponse<OrderDto>`
 
-**Note:** Page size capped at 200.
+**Note:** Page size capped at 200. `asset_type` scopes pagination as well as the rows, so paging
+through `"all"` interleaves both products.
 
 ---
 
@@ -437,12 +581,15 @@ GET /api/v1/trade_history
 | `market` | string | No | Filter by market |
 | `order_id` | string | No | Filter by order ID (requires `market`) |
 | `side` | string | No | `"buy"` or `"sell"` |
+| `asset_type` | string | No | `"perp"` or `"spot"`; omit for both (Section 1.5) |
 
 **Response:** `200 OK` — `PaginatedResponse<TradeDto>`
 
 **Edge behaviors:**
 - Returns `400` if `order_id` provided without `market`.
 - Page size capped at 200.
+- Spot rows report `action` as the side (`"Buy"` / `"Sell"`) rather than the perp position-centric
+  values, carry `fee_asset`, and leave the perp-only PnL/funding fields at 0.
 
 ---
 
@@ -518,6 +665,69 @@ GET /api/v1/subaccounts
 
 ---
 
+### 3.8 Get Withdrawal Queue
+
+Withdrawals are queued on-chain and settled asynchronously. This endpoint serves the indexed
+history of every queue event for an account.
+
+```
+GET /api/v1/withdraw_queue
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `account` | string | Yes | Subaccount address |
+| `status` | string | No | `"Queued"`, `"Processed"`, or `"Cancelled"` |
+| `limit` | int32 | No | Max results |
+| `offset` | int32 | No | Pagination offset |
+
+**Response:** `200 OK`
+```json
+{
+  "items": [
+    {
+      "user": "0x...",
+      "recipient": "0x...",
+      "market": null,
+      "fungible_amount": 100.0,
+      "processed_amount": 0.0,
+      "request_id": "42",
+      "status": "Queued",
+      "cancel_reason": null,
+      "timestamp_ms": 1699564800000,
+      "queued_at_ms": 1699564800000,
+      "transaction_version": 12345678
+    }
+  ],
+  "total_count": 1
+}
+```
+
+**Cancel reasons:** `"CancelledByUser"`, `"InsufficientWithdrawableBalance"`,
+`"DepositCheckFailed"`. New reasons SHALL pass through unrecognized rather than fail validation.
+
+**Edge behaviors:**
+- `total_count` counts **event rows, not unique withdrawals**: with no `status` filter, a
+  Queued-then-Processed withdrawal contributes two rows. Pass a `status` filter when using
+  `total_count` for pagination.
+- `request_id` is a u64 serialized as a decimal string.
+- `processed_amount` is 0 on Queued and Cancelled rows. Partial fills each emit their own row under
+  the same `request_id`.
+- `queued_at_ms` may be null on replay-reordered rows and backfill timeouts. Do not fall back to
+  `timestamp_ms` for display — that is the latest event's time, not the queue time.
+- `cancel_reason` is only meaningful when `status == "Cancelled"`.
+- Rows are merged client-side by `request_id`, applying an update only when its
+  `transaction_version` is **strictly greater**: delivery is at-least-once, so `>=` would let a
+  duplicate overwrite merged fields with nulls.
+
+The on-chain view `{package}::async_withdraw_queue::get_pending_withdrawals` is available as a liveness-check
+fallback. It returns only currently-Queued items in **raw chain units**, which are not comparable to
+the normalized `fungible_amount` above; correlate the two by `request_id`.
+
+---
+
 ## 4. User Endpoints
 
 ### 4.1 Get Single Order Details
@@ -533,7 +743,13 @@ GET /api/v1/orders
 | `market` | string | Yes | Market address |
 | `account` | string | Yes | Subaccount address |
 | `order_id` | string | No* | Order ID (provide one of `order_id` or `client_order_id`) |
-| `client_order_id` | string | No* | Client order ID |
+| `client_order_id` | string | No* | Client order ID (perp only — spot orders carry none) |
+| `asset_type` | string | No | `"perp"` or `"spot"`; omit to check perp then fall through to spot |
+
+\* Exactly one of `order_id` / `client_order_id` SHALL be provided.
+
+Unlike the list endpoints, the SDK leaves `asset_type` **unset** by default here: a point lookup by
+id wants the server's perp-then-spot fallthrough rather than a product filter.
 
 **Response:** `200 OK`
 ```json
@@ -626,6 +842,61 @@ Fund movement types: `"deposit"`, `"withdrawal"`
 
 ---
 
+### 4.4 Get User Fee Rates
+
+```
+GET /api/v1/user_fee_rates
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `account` | string | Yes | Subaccount address |
+
+**Response:** `200 OK`
+```json
+{
+  "account": "0x...",
+  "fee_tier": 2,
+  "user_taker_rate": 0.00034,
+  "user_maker_rate": 0.00011,
+  "active_referral_discount": 0.05,
+  "daily_user_volume": [
+    { "date": "2026-08-16", "volume": "125000", "maker_volume": "50000", "taker_volume": "75000" }
+  ],
+  "fee_schedule": {
+    "taker": 0.00034,
+    "maker": 0.00011,
+    "referral_discount": 0.05,
+    "tiers": {
+      "vip": [{ "volume_threshold": "5000000", "taker": 0.0003, "maker": 0.00009 }],
+      "market_maker": [{ "maker_fraction_threshold": "0.005", "maker": -0.00001 }]
+    }
+  },
+  "perp": { "fee_tier": 2, "fee_schedule": { }, "user_taker_rate": 0.0003, "user_maker_rate": 0.00009, "daily_user_volume": [], "total_window_volume_usd": "5200000", "active_referral_discount": 0.05 },
+  "spot": { "fee_tier": 1, "fee_schedule": { }, "user_taker_rate": 0.0004, "user_maker_rate": 0.0001, "daily_user_volume": [], "total_window_volume_usd": "300000", "active_referral_discount": 0.0 },
+  "weighted_volume_usd": "5350000",
+  "volume_weights": { "perp": 100.0, "spot": 50.0 }
+}
+```
+
+**Notes:**
+- Rates are decimals, not basis points: `0.000340` = 0.034%.
+- Volumes are whole-dollar USD integers serialized as strings.
+- Tier qualification is inclusive (`volume >= volume_threshold`), matching the on-chain `>=`.
+- `tiers.market_maker` is empty when maker rebates are disabled. Rebate rates are negative.
+- The fee tier is **cross-product**: computed from
+  `perp_volume * volume_weights.perp + spot_volume * volume_weights.spot` (mirroring the on-chain
+  `CrossProductVolumeWeights`, where 100 == 1.0x) and then indexed into each product's own ladder.
+  Perp and spot can therefore sit at different tiers for the same user.
+- `perp`, `spot`, `weighted_volume_usd` and `volume_weights` are optional — the per-product split is
+  still rolling out server-side. The top-level rate fields remain perp-only aliases of `perp.*` for
+  backward compatibility; new consumers SHALL read `perp` / `spot` explicitly.
+- Spot has no referral program, so `spot.active_referral_discount` is always 0.
+
+---
+
 ## 5. TWAP Endpoints
 
 ### 5.1 Get Active TWAP Orders
@@ -702,6 +973,7 @@ GET /api/v1/bulk_orders
 |-------|------|----------|-------------|
 | `account` | string | Yes | Subaccount address |
 | `market` | string | No | Filter by market |
+| `asset_type` | string | No | `"perp"` or `"spot"`; omit for both (Section 1.5) |
 
 **Response:** `200 OK`
 ```json
@@ -748,10 +1020,15 @@ GET /api/v1/bulk_order_status
 | `account` | string | Yes | Subaccount address |
 | `market` | string | Yes | Market address |
 | `sequence_number` | int64 | Yes | Bulk order sequence number |
+| `asset_type` | string | No | `"perp"` or `"spot"` |
 
 **Response:** `200 OK` — `BulkOrderStatusResponse`
 
 Status values: `"Placed"`, `"Rejected"`, `"notFound"`
+
+**Note:** Bulk-order status is keyed per product — sequence numbers are per (account, market,
+product) — so there is no merged view here. The SDK always sends `asset_type`, defaulting to
+`"perp"`.
 
 ---
 
@@ -772,6 +1049,7 @@ GET /api/v1/bulk_order_fills
 | `end_sequence_number` | int64 | No | Range end (requires `start_sequence_number`) |
 | `limit` | int32 | No | Max results |
 | `offset` | int32 | No | Pagination offset |
+| `asset_type` | string | No | `"perp"` or `"spot"`; omit for both (Section 1.5) |
 
 **Response:** `200 OK`
 ```json
@@ -879,7 +1157,7 @@ GET /api/v1/account_vault_performance
 
 ---
 
-## 8. Analytics Endpoints
+## 8. Analytics, Points & Streaks Endpoints
 
 ### 8.1 Get Leaderboard
 
@@ -970,7 +1248,118 @@ GET /api/v1/portfolio_chart
 
 ---
 
-## 9. Referral Endpoints
+### 8.4 Get Points Tier
+
+```
+GET /api/v1/points/tier
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `owner` | string | Yes | Owner wallet address (not a subaccount) |
+
+**Response:** `200 OK`
+```json
+{
+  "owner": "0x...",
+  "total_amps": 12500.0,
+  "rank": 42,
+  "current_tier": "gold",
+  "tiers": [
+    { "name": "gold", "hz_threshold": 10000.0, "progress": 1.0 },
+    { "name": "doublePlatinum", "hz_threshold": 50000.0, "progress": 0.25 }
+  ]
+}
+```
+
+**Notes:**
+- Thresholds are percentile-based, so they move as the population changes.
+- `rank` and `current_tier` are null for owners with no Amps.
+- `progress` is a 0–1 fraction toward that threshold.
+
+---
+
+### 8.5 Get Global Points Stats
+
+```
+GET /api/v1/points/global
+```
+
+**Query Parameters:** None
+
+**Response:** `200 OK`
+```json
+{ "total_users": 125000, "total_amps_distributed": 987654321.0 }
+```
+
+---
+
+### 8.6 Get Trading Amps
+
+Aggregated trading Hz (Amps) for an owner across all their active subaccounts.
+
+```
+GET /api/v1/points/trading/amps
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `owner` | string | Yes | Owner wallet address |
+| `season` | string | No | Restrict to one season (e.g. `"season1"`); omit to aggregate all |
+| `days` | int32 | No | Lookback window in days (1 = today only); omit for lifetime |
+
+**Response:** `200 OK`
+```json
+{
+  "owner": "0x...",
+  "total_amps": 12500.0,
+  "breakdown": [{ "account": "0x...", "total_amps": 9000.0 }]
+}
+```
+
+**Notes:**
+- `breakdown` may be absent; `total_amps` is authoritative either way.
+
+---
+
+### 8.7 Get Account Streaks
+
+```
+GET /api/v1/streaks/account
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `owner` | string | Yes | Owner wallet address |
+
+**Response:** `200 OK`
+```json
+{
+  "owner": "0x...",
+  "currentStreak": 5,
+  "streakIpoints": 12.5,
+  "streakAmpsEstimate": 3.0,
+  "graceDaysAvailable": 2,
+  "graceDaysUsed": 1,
+  "qualifyingDates": ["2026-08-16", "2026-08-15"]
+}
+```
+
+**Notes:**
+- This is the **only** endpoint in the API that serves camelCase keys. The SDK aliases them to
+  snake_case so its surface stays uniform.
+- `qualifyingDates` are UTC `YYYY-MM-DD` strings.
+- Grace days let a streak survive a missed day; `graceDaysAvailable` is what remains.
+
+---
+
+## 9. Referral & Affiliate Endpoints
 
 ### 9.1 Get Referral Info
 
@@ -1022,7 +1411,133 @@ GET /api/v1/referrals/users
 
 ---
 
-## 10. Predeposit Endpoints
+### 9.4 Validate a Referral Code
+
+```
+GET /api/v1/referrals/code/{code}
+```
+
+**Path Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `code` | string | Yes | Referral code, URL-encoded |
+
+**Response:** `200 OK`
+```json
+{ "referral_code": "ABC123", "is_valid": true, "is_active": true }
+```
+
+**Notes:**
+- Codes are user-supplied, so the path segment SHALL be percent-encoded (`/` → `%2F`).
+- `is_valid` means the code exists; `is_active` means it can still be redeemed.
+
+---
+
+### 9.5 Redeem a Referral Code
+
+```
+POST /api/v1/referrals/redeem
+```
+
+**Request Body:**
+```json
+{ "referral_code": "ABC123", "account": "0x..." }
+```
+
+**Response:** `200 OK`
+```json
+{ "referral_code": "ABC123", "account": "0x..." }
+```
+
+---
+
+### 9.6 Get Affiliate Codes
+
+```
+GET /api/v1/affiliates/codes/{account}
+GET /api/v1/affiliates/codes/{account}/analytics
+```
+
+**Response (`/codes`):** `200 OK`
+```json
+{
+  "owner_account": "0x...",
+  "volume_threshold_met": true,
+  "codes": [
+    {
+      "referral_code": "ABC123",
+      "owner_account": "0x...",
+      "max_usage": 100,
+      "usage_count": 12,
+      "is_active": true,
+      "is_affiliate": true,
+      "source": "admin",
+      "created_at_ms": 1699564800000
+    }
+  ]
+}
+```
+
+**Response (`/analytics`):** `200 OK`
+```json
+{
+  "owner_account": "0x...",
+  "codes": [{ "referral_code": "ABC123", "l1_volume_usd": 500000.0, "l1_amps_earned": 1250.0 }]
+}
+```
+
+**`source` values:** `"admin"`, `"auto"`, `"reusable"`, `"predeposit"`, `"unknown"`
+
+**Notes:**
+- Analytics live behind a separate route deliberately: the metadata route is hit on every page load
+  via the global nav and SHALL NOT pay the analytics JOIN cost.
+
+---
+
+### 9.7 Get Affiliate Earnings
+
+```
+GET /api/v1/affiliates/earnings/{account}
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `limit` | int32 | No | Max referred users returned in `users.items` |
+
+**Response:** `200 OK`
+```json
+{
+  "affiliate_account": "0x...",
+  "is_affiliate": true,
+  "earnings": { "l1_amps": 1250.0, "l2_amps": 300.0, "total_amps": 1550.0, "l1_count": 12, "l2_count": 40 },
+  "users": {
+    "items": [
+      {
+        "account": "0x...",
+        "level": "L1",
+        "referred_by": null,
+        "total_amps": 900.0,
+        "affiliate_amps_earned": 90.0,
+        "total_volume": 250000.0,
+        "active": true
+      }
+    ],
+    "total_count": 52
+  }
+}
+```
+
+**Notes:**
+- `level` is `"L1"` (directly referred) or `"L2"` (referred by an L1). `referred_by` is null for L1.
+- The SDK requests `limit=1000` so the earnings breakdown and the user list stay consistent in one
+  round trip.
+
+---
+
+## 10. Rewards, Campaign & Predeposit Endpoints
 
 ### 10.1 Get S0 Predeposit USDC Reward
 
@@ -1046,6 +1561,192 @@ GET /api/v1/predeposits/rewards
 
 ---
 
+### 10.2 Get Active Campaigns
+
+```
+GET /api/v1/campaigns/active
+```
+
+**Query Parameters:** None
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "campaign_id": 7,
+    "campaign_type": "fee_rebate",
+    "status": "active",
+    "title": "August Fee Rebate",
+    "description": "Rebates on taker fees",
+    "reward_asset": "0x...",
+    "start_ts_sec": 1754006400,
+    "end_ts_sec": 1756684800,
+    "claim_start_ts_sec": 1756684800,
+    "claim_end_ts_sec": 1759276800,
+    "total_funded": 50000.0
+  }
+]
+```
+
+**`campaign_type` values:** `"fee_rebate"`, `"maker_incentive"`, `"liquidation_rebate"`,
+`"volume_milestone"`, `"first_funded_trial"`
+
+**`status` values:** `"draft"`, `"funded"`, `"active"`, `"expired"`, `"reclaimed"`, `"cancelled"`
+
+**Notes:**
+- Returns every campaign currently visible to users, regardless of the caller's allocation.
+
+---
+
+### 10.3 Get Account Campaign Summary
+
+```
+GET /api/v1/campaigns/account
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `account` | string | Yes | Account address |
+| `limit` | int32 | No | Paginate the `claims` list |
+| `offset` | int32 | No | Pagination offset |
+
+**Response:** `200 OK`
+```json
+{
+  "lifetime_earned": 1250.0,
+  "ready_to_claim": 300.0,
+  "total_claimed": 950.0,
+  "year_to_date": 1250.0,
+  "weekly_wow_bps": 1500.0,
+  "total_claims": 3,
+  "breakdown_by_type": [
+    { "campaign_type": "fee_rebate", "lifetime_earned": 1000.0, "ready_to_claim": 300.0, "total_claimed": 700.0 }
+  ],
+  "weekly_breakdown": [{ "week_start_ts_sec": 1754006400, "reward_amount": 120.0 }],
+  "claims": [
+    {
+      "campaign_id": 7,
+      "campaign_type": "fee_rebate",
+      "status": "active",
+      "title": "August Fee Rebate",
+      "reward_asset": "0x...",
+      "start_ts_sec": 1754006400,
+      "end_ts_sec": 1756684800,
+      "claim_start_ts_sec": 1756684800,
+      "claim_end_ts_sec": 1759276800,
+      "total_funded": 50000.0,
+      "has_allocation": true,
+      "claimable_amount": 300.0,
+      "claimed_amount": 0.0,
+      "ready_to_claim": 300.0,
+      "claimed_at_ts_sec": null,
+      "claim_tx_hash": null
+    }
+  ]
+}
+```
+
+**Notes:**
+- `limit` / `offset` paginate `claims` only; the aggregate totals always cover every campaign.
+- Claim amounts are raw u64 chain units — divide by `10^6` for USDC.
+- `lifetime_earned == ready_to_claim + total_claimed`.
+- `ready_to_claim` already subtracts claimed and in-flight amounts, so it is the number to put
+  behind a "Claim $X" button.
+- `weekly_wow_bps` is cumulative week-over-week growth in basis points, and is 0 when the prior
+  cumulative was 0 or growth was non-positive.
+
+---
+
+### 10.4 Get Protected Trials (Funded First Trade)
+
+```
+GET /api/v1/protected_trials
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `account` | string | Yes | Account address |
+| `campaign_addr` | string | No | Restrict to one campaign |
+| `limit` | int32 | No | Max history rows |
+| `offset` | int32 | No | Pagination offset |
+
+**Response:** `200 OK`
+```json
+{
+  "account": "0x...",
+  "active_trial": { "trial_id": 1, "user": "0x...", "campaign_addr": "0x...", "status": "Active", "size": 1.5 },
+  "active_trials": [],
+  "history": [],
+  "history_total_count": 12
+}
+```
+
+**Notes:**
+- The open-sourced fields (`market`, `mark_at_open`, `side`, …) are absent only on degraded reset
+  rows; the terminal fields (`closed_at_ms`, `user_payout`, `settle_reason`, …) appear on
+  closed/reset rows only.
+- `size` is always serialized and is null when the market is unknown.
+- `history_total_count` is a SQL-level count: server-skipped rows still count, so clients SHALL NOT
+  assert `len(history) == history_total_count` on the last page.
+- The SDK treats a trial that settled within the last 5 minutes as still worth showing, so
+  `get_active_trial` may return a non-Active row from `history`.
+- This endpoint may be absent on deployments predating the campaign; the SDK falls back to on-chain
+  views rather than failing.
+
+---
+
+### 10.5 Get Campaign Locks
+
+```
+GET /api/v1/campaign_locks
+```
+
+**Query Parameters:**
+
+| Param | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `account` | string | Yes | — | Account address |
+| `campaign_addr` | string | No | — | Restrict to one campaign |
+| `status` | string | No | — | `"Active"` or `"Claimed"` |
+| `limit` | int32 | No | `10` | Max results |
+| `offset` | int32 | No | — | Pagination offset |
+
+**Response:** `200 OK`
+```json
+{
+  "account": "0x...",
+  "locks": [
+    {
+      "lock_id": 1,
+      "campaign_addr": "0x...",
+      "trial_id": 1,
+      "amount": 250000000,
+      "amount_usd": 250.0,
+      "duration_days": 7,
+      "lock_subaccount": "0x...",
+      "locked_at_ms": 1699564800000,
+      "unlocks_at_ms": 1700169600000,
+      "status": "Active",
+      "was_extended": false
+    }
+  ],
+  "total_count": 1
+}
+```
+
+**Notes:**
+- Extension fields (`previous_unlocks_at_ms`, `extended_at_ms`) appear on extended locks only; the
+  returned/claimed fields (`returned_amount`, `claimed_at_ms`) on claimed locks only.
+- `returned_amount` is trading-PnL-adjusted, so it may differ from `amount`.
+- Skipped orphan rows still count and consume page slots:
+  `has_next_page = offset + limit < total_count`.
+
+---
+
 ## 11. Shared Data Schemas
 
 ### 11.1 PriceDto
@@ -1065,9 +1766,11 @@ GET /api/v1/predeposits/rewards
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `asset_type` | string? | No | `"perp"` or `"spot"`; absent on pre-spot API versions (treat as perp) |
+| `time_in_force` | string? | No | `"GTC"`, `"IOC"`, `"POST_ONLY"`. Spot orders carry it explicitly |
 | `parent` | string | Yes | Parent account address |
 | `market` | string | Yes | Market address |
-| `client_order_id` | string | Yes | Client-specified ID |
+| `client_order_id` | string | Yes | Client-specified ID (perp only; empty for spot) |
 | `order_id` | string | Yes | Server-assigned ID |
 | `status` | string | Yes | `"Open"`, `"Filled"`, `"Cancelled"`, `"Expired"`, `"Rejected"` |
 | `order_type` | string | Yes | `"Limit"`, `"Market"`, `"Stop Limit"`, `"Stop Market"` |
@@ -1117,9 +1820,11 @@ GET /api/v1/predeposits/rewards
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `asset_type` | string? | No | `"perp"` or `"spot"`; absent on pre-spot API versions (treat as perp) |
 | `account` | string | Yes | User's subaccount address |
 | `market` | string | Yes | Market address |
-| `action` | string | Yes | Trade action type |
+| `action` | string | Yes | Perp: `"OpenLong"`/`"CloseLong"`/`"OpenShort"`/`"CloseShort"`/`"Net"`. Spot: `"Buy"`/`"Sell"` |
+| `fee_asset` | string? | No | Spot only: FA address `fee_amount` is denominated in (base for the buyer, quote for the seller). Absent on perp, where fees are in USDC |
 | `source` | string | Yes | Trade source |
 | `trade_id` | string | Yes | Trade ID |
 | `size` | float64 | Yes | Trade size |
@@ -1167,6 +1872,12 @@ GET /api/v1/predeposits/rewards
 | `px_decimals` | uint32 | Yes | Price decimal precision |
 | `mode` | string | Yes | Market mode: `"Open"`, `"ReduceOnly"`, `"CloseOnly"` |
 | `unrealized_pnl_haircut_bps` | uint32 | Yes | PnL haircut in basis points |
+| `asset_type` | string? | No | `"perp"` or `"spot"`; absent on pre-spot API versions (treat as perp) |
+
+Spot markets reuse this shape: `sz_decimals` is the base asset's decimals, `px_decimals` the
+quote's, and `max_leverage` / `max_open_interest` are 0 (spot is unleveraged). `mode` is `"Open"`.
+`/api/v1/markets` returns both products; the SDK filters spot rows out by default so existing perp
+callers see no change.
 
 ### 11.7 BulkOrderDto
 
@@ -1188,6 +1899,7 @@ GET /api/v1/predeposits/rewards
 | `transaction_version` | uint64 | Yes | Transaction version |
 | `transaction_unix_ms` | int64 | Yes | Timestamp |
 | `event_uid` | string (u128) | Yes | Event unique identifier |
+| `asset_type` | string? | No | `"perp"` or `"spot"`; absent on pre-spot API versions (treat as perp) |
 
 ### 11.8 PaginatedResponse\<T\>
 
@@ -1200,7 +1912,47 @@ GET /api/v1/predeposits/rewards
 
 All paginated responses SHALL include `items` (array) and `total_count` (int32).
 
-### 11.9 Enum Types
+### 11.9 SpotAssetContextDto
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `market_addr` | string | Yes | Spot market address |
+| `name` | string | Yes | Market name (e.g. `"APT/USDC"`) |
+| `ticker_id` | string | Yes | Ticker identifier (e.g. `"APT_USDC"`) |
+| `base_asset_addr` | string | Yes | Base FA metadata address |
+| `quote_asset_addr` | string | Yes | Quote FA metadata address |
+| `base_decimals` | uint32 | Yes | Base asset decimals |
+| `quote_decimals` | uint32 | Yes | Quote asset decimals |
+| `last_price` | float64? | Yes | Last trade price; null with no 24h trades |
+| `mid` | float64? | Yes | Book mid; null unless both sides have resting liquidity |
+| `prev_day_price` | float64? | Yes | Price at the 24h boundary; null if it never traded before it |
+| `volume_24h_base` | float64 | Yes | 24h volume in base units |
+| `volume_24h_quote` | float64 | Yes | 24h volume in quote units |
+| `high_24h` | float64? | Yes | 24h high; null with no 24h trades |
+| `low_24h` | float64? | Yes | 24h low; null with no 24h trades |
+| `timestamp_unix_ms` | int64 | Yes | Snapshot timestamp |
+
+### 11.10 Enum Types
+
+**AssetType:** `"perp"`, `"spot"` (absent on pre-spot API versions — treat as `"perp"`)
+
+**TimeInForce:** `"GTC"`, `"IOC"`, `"POST_ONLY"`
+
+**WithdrawQueueStatus:** `"Queued"`, `"Processed"`, `"Cancelled"`
+
+**WithdrawCancelReason:** `"CancelledByUser"`, `"InsufficientWithdrawableBalance"`,
+`"DepositCheckFailed"` (new reasons pass through unrecognized)
+
+**CampaignType:** `"fee_rebate"`, `"maker_incentive"`, `"liquidation_rebate"`,
+`"volume_milestone"`, `"first_funded_trial"`
+
+**CampaignStatus:** `"draft"`, `"funded"`, `"active"`, `"expired"`, `"reclaimed"`, `"cancelled"`
+
+**LockStatus:** `"Active"`, `"Claimed"`
+
+**ReferralCodeSource:** `"admin"`, `"auto"`, `"reusable"`, `"predeposit"`, `"unknown"`
+
+**AffiliateLevel:** `"L1"`, `"L2"`
 
 **Interval:** `"1m"`, `"5m"`, `"15m"`, `"30m"`, `"1h"`, `"2h"`, `"4h"`, `"1d"`, `"1w"`, `"1mo"`
 

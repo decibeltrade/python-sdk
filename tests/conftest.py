@@ -17,6 +17,7 @@ TEST_PACKAGE = "0x" + "ab" * 32
 TEST_USDC = "0x" + "cd" * 32
 TEST_TESTC = "0x" + "ef" * 32
 TEST_PERP_ENGINE = "0x" + "12" * 32
+TEST_SPOT_ENGINE = "0x" + "34" * 32
 TEST_FULLNODE_URL = "https://test-node.example.com/v1"
 TEST_TRADING_HTTP_URL = "https://test-trading.example.com"
 TEST_TRADING_WS_URL = "wss://test-trading.example.com/ws"
@@ -30,6 +31,7 @@ def test_deployment() -> Deployment:
         usdc=TEST_USDC,
         testc=TEST_TESTC,
         perp_engine_global=TEST_PERP_ENGINE,
+        spot_engine_global=TEST_SPOT_ENGINE,
     )
 
 

@@ -27,6 +27,6 @@ class UserTwapHistoryReader(BaseReader):
         response, _, _ = await self.get_request(
             model=UserTwapHistoryResponse,
             url=f"{self.config.trading_http_url}/api/v1/twap_history",
-            params={"user": sub_addr, "limit": str(limit), "offset": str(offset)},
+            params={"account": sub_addr, "limit": str(limit), "offset": str(offset)},
         )
         return response

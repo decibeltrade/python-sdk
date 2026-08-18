@@ -31,15 +31,33 @@ def _setup_cli_logging() -> None:
 
 TESTNET_SDK_MODULES = ["usdc"]
 
+#: Modules published under ``deployment.package``.
 SDK_MODULES = [
     "admin_apis",
     "public_apis",
     "dex_accounts",
     "dex_accounts_entry",
+    "dex_accounts_spot_entry",
     "dex_accounts_vault_extension",
     "perp_engine",
+    "spot_admin_apis",
+    "spot_engine",
+    "spot_market_escrow",
+    "spot_order_public_api",
+    "spot_order_read_apis",
     "vault",
     "vault_api",
+]
+
+#: Campaign / funded-first-trade modules, published under ``deployment.campaign_package``.
+#:
+#: These live in a separate package, so their function ids carry a different address prefix than
+#: everything in :data:`SDK_MODULES`. Deployments without a campaign package skip them entirely; on
+#: a network where one of these modules isn't deployed yet the fetch lands in ``errors[]``.
+CAMPAIGN_MODULES = [
+    "campaign_manager",
+    "funded_first_trade",
+    "protected_trial",
 ]
 
 
@@ -52,9 +70,28 @@ def get_abi_filename(config: DecibelConfig) -> str:
         return f"{config.network.value}.json"
 
 
+def _module_targets(config: DecibelConfig) -> list[tuple[str, str]]:
+    """``(package, module)`` pairs to fetch, in output order."""
+    modules = TESTNET_SDK_MODULES + SDK_MODULES if config == TESTNET_CONFIG else SDK_MODULES
+    targets = [(config.deployment.package, module) for module in modules]
+
+    campaign_package = config.deployment.campaign_package
+    if campaign_package:
+        targets += [(campaign_package, module) for module in CAMPAIGN_MODULES]
+    else:
+        logger.info(
+            "No campaign package configured for %s; skipping %s",
+            config.network.value,
+            ", ".join(CAMPAIGN_MODULES),
+        )
+
+    return targets
+
+
 async def fetch_all_abis(config: DecibelConfig) -> None:
     logger.info("Fetching ABIs for Decibel SDK functions...")
     logger.info("Package: %s", config.deployment.package)
+    logger.info("Campaign package: %s", config.deployment.campaign_package or "(none)")
     logger.info("Network: %s", config.network.value)
     logger.info("Fullnode: %s", config.fullnode_url)
     logger.info("")
@@ -66,15 +103,14 @@ async def fetch_all_abis(config: DecibelConfig) -> None:
     client = RestClient(config.fullnode_url)
     abis: dict[str, dict[str, Any]] = {}
     errors: list[dict[str, str]] = []
-    package_address = AccountAddress.from_str(config.deployment.package)
-    modules = TESTNET_SDK_MODULES + SDK_MODULES if config == TESTNET_CONFIG else SDK_MODULES
+    targets = _module_targets(config)
 
-    for module in modules:
+    for package, module in targets:
         try:
-            logger.info("Fetching entire module: %s", module)
+            logger.info("Fetching entire module: %s::%s", package, module)
 
             module_info: dict[str, Any] = await client.account_module(  # pyright: ignore[reportUnknownMemberType,reportUnknownVariableType]
-                package_address,
+                AccountAddress.from_str(package),
                 module,
             )
 
@@ -91,7 +127,7 @@ async def fetch_all_abis(config: DecibelConfig) -> None:
             logger.info("Keeping %d functions in %s", len(relevant_functions), module)
 
             for func in relevant_functions:
-                function_id = f"{config.deployment.package}::{module}::{func['name']}"
+                function_id = f"{package}::{module}::{func['name']}"
                 abis[function_id] = func
 
             logger.info(
@@ -105,12 +141,15 @@ async def fetch_all_abis(config: DecibelConfig) -> None:
 
     await client.close()
 
+    modules = [module for _, module in targets]
+
     total_functions = len(abis)
     successful = total_functions
     failed = len(errors)
 
     result: dict[str, Any] = {
         "packageAddress": config.deployment.package,
+        "campaignPackageAddress": config.deployment.campaign_package or None,
         "network": config.network.value,
         "fullnodeUrl": config.fullnode_url,
         "fetchedAt": datetime.now(UTC).isoformat().replace("+00:00", "Z"),

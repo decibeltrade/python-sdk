@@ -11,8 +11,11 @@ from aptos_sdk.account_address import AccountAddress
 from aptos_sdk.bcs import Serializer
 from pydantic import BaseModel, ValidationError
 
+from ._asset_type import is_spot
+
 if TYPE_CHECKING:
-    from ._constants import CompatVersion
+    from ._asset_type import AssetTypeName
+    from ._constants import CompatVersion, Deployment
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +30,13 @@ __all__ = [
     "patch_request",
     "patch_request_sync",
     "get_market_addr",
+    "get_spot_market_addr",
+    "get_market_addr_for_product",
     "get_primary_subaccount_addr",
     "get_trading_competition_subaccount_addr",
     "get_vault_share_address",
     "round_to_tick_size",
+    "round_to_tick_size_for_side",
     "round_to_valid_price",
     "round_to_valid_order_size",
     "amount_to_chain_units",
@@ -309,6 +315,30 @@ def get_market_addr(name: str, perp_engine_global_addr: str) -> str:
     return str(AccountAddress.for_named_object(creator, market_name_bytes))
 
 
+def get_spot_market_addr(name: str, package_addr: str) -> str:
+    """Derive a spot market's object address from the market name.
+
+    Spot markets are named objects of the ``GlobalSpotEngine`` object, which is itself a named
+    object of the deployment package. Note this differs from perp markets, which derive from
+    ``deployment.perp_engine_global``.
+    """
+    package = AccountAddress.from_str(package_addr)
+    spot_engine_global = AccountAddress.for_named_object(package, b"GlobalSpotEngine")
+    market_name_bytes = _bcs_encode_string(name)
+    return str(AccountAddress.for_named_object(spot_engine_global, market_name_bytes))
+
+
+def get_market_addr_for_product(
+    name: str,
+    asset_type: AssetTypeName | str,
+    deployment: Deployment,
+) -> str:
+    """Derive a market address for either product from its name."""
+    if is_spot(asset_type):
+        return get_spot_market_addr(name, deployment.package)
+    return get_market_addr(name, deployment.perp_engine_global)
+
+
 def get_primary_subaccount_addr(
     addr: AccountAddress | str,
     compat_version: CompatVersion,
@@ -351,6 +381,34 @@ def round_to_tick_size(price: float, tick_size: int, px_decimals: int, round_up:
     else:
         rounded = math.floor(denormalized / tick_size) * tick_size
     return round(rounded / (10**px_decimals), px_decimals)
+
+
+def round_to_tick_size_for_side(
+    price: float,
+    tick_size: int,
+    px_decimals: int,
+    is_buy: bool,
+) -> float:
+    """Round a price to a valid tick, never crossing the trader's own limit.
+
+    Buys round down and sells round up, so the rounded price is always at least as favourable
+    to the trader as the requested one. Spot markets reject off-tick prices outright, so
+    nearest-tick rounding (:func:`round_to_valid_price`) can push a buy above the intended
+    limit.
+
+    ``price`` is in display units while ``tick_size`` is the chain-unit integer reported by
+    ``/markets``; the scaling between them is done here via ``px_decimals``. The write methods'
+    ``tick_size`` kwarg works differently — there the price is already denormalized, so price
+    and tick share a unit and no ``px_decimals`` is involved.
+    """
+    if price == 0 or tick_size == 0:
+        return 0.0
+    denormalized = price * (10**px_decimals)
+    ticks = denormalized / tick_size
+    # Nudge before truncating so a price that is already on-tick isn't pushed a whole tick
+    # away by float representation error (e.g. 2.9999999999999996 ticks for an exact 3).
+    rounded = math.floor(ticks + 1e-9) if is_buy else math.ceil(ticks - 1e-9)
+    return round(rounded * tick_size / (10**px_decimals), px_decimals)
 
 
 def round_to_valid_price(price: float, tick_size: int, px_decimals: int) -> float:

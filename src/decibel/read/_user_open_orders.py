@@ -4,11 +4,13 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 
+from .._asset_type import AssetTypeName, to_asset_type_param
 from ._base import BaseReader
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from .._asset_type import AssetTypeFilter
     from ._ws import Unsubscribe
 
 __all__ = [
@@ -22,6 +24,10 @@ __all__ = [
 class UserOpenOrder(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    # Absent on API versions that predate spot support (treat as "perp").
+    asset_type: AssetTypeName | None = None
+    # Spot orders carry the explicit time-in-force ("GTC"/"IOC"/"POST_ONLY").
+    time_in_force: str | None = None
     parent: str
     market: str
     order_id: str
@@ -65,12 +71,22 @@ class UserOpenOrdersReader(BaseReader):
         sub_addr: str,
         limit: int | None = None,
         offset: int | None = None,
+        asset_type: AssetTypeFilter = "perp",
     ) -> UserOpenOrdersResponse:
-        params: dict[str, str] = {"user": sub_addr}
+        """Get the open orders for a subaccount.
+
+        ``asset_type`` is a server-side product filter (default ``"perp"``). Pass ``"spot"`` to
+        scope the response (and its pagination) to spot, or ``"all"`` to omit the param and
+        receive perp and spot merged — each row then carries ``asset_type`` for client-side demux.
+        """
+        params: dict[str, str] = {"account": sub_addr}
         if limit is not None:
             params["limit"] = str(limit)
         if offset is not None:
             params["offset"] = str(offset)
+        asset_type_param = to_asset_type_param(asset_type)
+        if asset_type_param is not None:
+            params["asset_type"] = asset_type_param
 
         response, _, _ = await self.get_request(
             model=UserOpenOrdersResponse,

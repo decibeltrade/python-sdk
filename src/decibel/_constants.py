@@ -16,6 +16,7 @@ __all__ = [
     "DEFAULT_TXN_SUBMIT_TIMEOUT",
     "HTTP_LIMITS",
     "HTTP_TIMEOUT",
+    "PREDEPOSIT_PACKAGE",
     "MAINNET_CONFIG",
     "TESTNET_CONFIG",
     "LOCAL_CONFIG",
@@ -24,6 +25,10 @@ __all__ = [
     "get_usdc_address",
     "get_testc_address",
     "get_perp_engine_global_address",
+    "get_spot_engine_global_address",
+    "get_campaign_package",
+    "get_dlp_vault_address",
+    "get_dlp_share_address",
 ]
 
 # Configurable timeout for transaction confirmation
@@ -33,6 +38,9 @@ DEFAULT_TXN_CONFIRM_TIMEOUT = 30.0
 # Configurable timeout for transaction submission
 # Default is 10 seconds (should be shorter than confirmation timeout)
 DEFAULT_TXN_SUBMIT_TIMEOUT = 10.0
+
+# Predeposit package — the same address on testnet and mainnet.
+PREDEPOSIT_PACKAGE = "0xc5939ec6e7e656cb6fed9afa155e390eb2aa63ba74e73157161829b2f80e1538"
 
 # Shared HTTP client connection pool limits
 HTTP_LIMITS = httpx.Limits(max_connections=20, max_keepalive_connections=10)
@@ -55,6 +63,17 @@ class Deployment:
     usdc: str
     testc: str
     perp_engine_global: str
+    spot_engine_global: str
+    #: Package the campaign / funded-first-trade modules are published at. Unlike the addresses
+    #: above this is NOT derived from ``package`` — it is a separately published package, so it is
+    #: looked up per network and is ``""`` for unrecognised ones.
+    campaign_package: str = ""
+    #: Campaign *object* address (the ``create_campaign`` result), not the module address.
+    #: Readers fall back to :attr:`campaign_package` when unset.
+    fft_campaign_addr: str | None = None
+    predeposit_package: str = PREDEPOSIT_PACKAGE
+    dlp_vault: str = ""
+    dlp_share: str = ""
 
 
 @dataclass(frozen=True)
@@ -88,12 +107,41 @@ def get_perp_engine_global_address(package: str) -> str:
     return str(AccountAddress.for_named_object(creator, b"GlobalPerpEngine"))
 
 
+def get_spot_engine_global_address(package: str) -> str:
+    creator = AccountAddress.from_str(package)
+    return str(AccountAddress.for_named_object(creator, b"GlobalSpotEngine"))
+
+
+def get_dlp_vault_address(package: str) -> str:
+    creator = AccountAddress.from_str(package)
+    vault_config = AccountAddress.for_named_object(creator, b"GlobalVaultConfig")
+    return str(AccountAddress.for_named_object(vault_config, b"Decibel Protocol Vault"))
+
+
+def get_dlp_share_address(package: str) -> str:
+    vault = AccountAddress.from_str(get_dlp_vault_address(package))
+    return str(AccountAddress.for_named_object(vault, b"vault_share_asset"))
+
+
+def get_campaign_package(package: str) -> str:
+    """Campaign package for a deployment, or ``""`` for an unrecognised one.
+
+    The campaign modules live in a separately published package, so unlike the other
+    deployment addresses this cannot be derived from ``package``.
+    """
+    return _CAMPAIGN_PACKAGES.get(package, "")
+
+
 def _create_deployment(package: str) -> Deployment:
     return Deployment(
         package=package,
         usdc=get_usdc_address(package),
         testc=get_testc_address(package),
         perp_engine_global=get_perp_engine_global_address(package),
+        spot_engine_global=get_spot_engine_global_address(package),
+        campaign_package=get_campaign_package(package),
+        dlp_vault=get_dlp_vault_address(package),
+        dlp_share=get_dlp_share_address(package),
     )
 
 
@@ -103,11 +151,22 @@ _TESTNET_PACKAGE = "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83
 _LOCAL_PACKAGE = "0xb8a5788314451ce4d2fbbad32e1bad88d4184b73943b7fe5166eab93cf1a5a95"
 _DOCKER_PACKAGE = "0xb8a5788314451ce4d2fbbad32e1bad88d4184b73943b7fe5166eab93cf1a5a95"
 
+_CAMPAIGN_PACKAGES: dict[str, str] = {
+    _MAINNET_PACKAGE: "0x7dd60d4445490318a073a600d6109ff587d21e634a22ea08a1b154cc591b3cf4",
+    _TESTNET_PACKAGE: "0x6c8e3171c638045f765e1d66e8e71e819eaf0afa54d1914db3c37f3b02a9c5b3",
+    # netna (shared by the local/docker deployments)
+    _LOCAL_PACKAGE: "0x000000000000000000000000000000000000000000000000000000000004e110",
+}
+
 MAINNET_DEPLOYMENT = Deployment(
     package=_MAINNET_PACKAGE,
     usdc=_MAINNET_USDC,
     testc=get_testc_address(_MAINNET_PACKAGE),
     perp_engine_global=get_perp_engine_global_address(_MAINNET_PACKAGE),
+    spot_engine_global=get_spot_engine_global_address(_MAINNET_PACKAGE),
+    campaign_package=_CAMPAIGN_PACKAGES[_MAINNET_PACKAGE],
+    dlp_vault=get_dlp_vault_address(_MAINNET_PACKAGE),
+    dlp_share=get_dlp_share_address(_MAINNET_PACKAGE),
 )
 
 MAINNET_CONFIG = DecibelConfig(

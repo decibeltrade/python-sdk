@@ -7,7 +7,7 @@ and parse responses according to the specification in docs/SPEC-REST.md.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
 import httpx
@@ -16,6 +16,9 @@ import pytest
 from decibel._constants import TESTNET_CONFIG, DecibelConfig
 from decibel.read._base import ReaderDeps
 from decibel.read._ws import DecibelWsSubscription
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 
 @dataclass
@@ -92,3 +95,24 @@ def reader_deps(
         aptos=AsyncMock(),
         api_key="test-api-key-123",
     )
+
+
+@pytest.fixture
+async def transport_deps(
+    testnet_config: DecibelConfig,
+    mock_ws: DecibelWsSubscription,
+    mock_transport: MockTransport,
+) -> AsyncIterator[ReaderDeps]:
+    """Reader dependencies whose HTTP client speaks to ``mock_transport``.
+
+    Unlike patching ``get_request``, this exercises the real request path, so the captured
+    request carries the URL, query params and auth headers the SDK actually emits.
+    """
+    async with httpx.AsyncClient(transport=mock_transport) as client:
+        yield ReaderDeps(
+            config=testnet_config,
+            ws=mock_ws,
+            aptos=AsyncMock(),
+            api_key="test-api-key-123",
+            http_client=client,
+        )

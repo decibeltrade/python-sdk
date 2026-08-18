@@ -1,7 +1,7 @@
 # Decibel Python SDK Specification
 
-> **Version:** 1.0.0
-> **Date:** 2026-04-07
+> **Version:** 1.1.0
+> **Date:** 2026-08-17
 > **Source:** https://docs.decibel.trade (OpenAPI 3.1.0 + AsyncAPI 3.0.0)
 
 ## Table of Contents
@@ -19,11 +19,15 @@
 
 ## 1. Overview
 
-The Decibel Python SDK provides a client library for interacting with the Decibel perpetual futures exchange built on the Aptos blockchain. The SDK SHALL support:
+The Decibel Python SDK provides a client library for interacting with the Decibel exchange built on the Aptos blockchain. Decibel offers two products — **perpetual futures** ("perp") and **spot** — and the SDK SHALL support both. The SDK SHALL support:
 
-- **REST API** (read-only): Market data, account data, analytics, vaults, referrals
+- **REST API** (read-only): Market data, account data, analytics, vaults, referrals, points & campaigns
 - **WebSocket API** (real-time): Streaming market data and account updates
-- **On-Chain Transactions** (write): Order placement, account management, vault operations via Aptos blockchain transactions
+- **On-Chain Transactions** (write): Perp and spot order placement, account management, vault operations via Aptos blockchain transactions
+
+Perp is the default product: every dual-product REST reader defaults to perp, so code written against
+the perp-only SDK SHALL continue to behave identically. See
+[SPEC-REST.md §1.5](./SPEC-REST.md) for the `asset_type` selector.
 
 ### Terminology
 
@@ -43,14 +47,19 @@ The Decibel Python SDK provides a client library for interacting with the Decibe
 ```
 DecibelSDK
 ├── DecibelReadDex          # REST API + WebSocket subscriptions (async)
-│   ├── Reader components   # 23 domain-specific readers
+│   ├── Reader components   # 35 domain-specific readers (perp + spot)
 │   └── WebSocket client    # Real-time subscriptions
 ├── DecibelWriteDex         # On-chain transaction building + submission (async)
 ├── DecibelWriteDexSync     # Synchronous variant of write operations
-├── DecibelAdminDex         # Protocol admin operations (async)
+├── DecibelAdminDex         # Perp protocol admin operations (async)
 ├── DecibelAdminDexSync     # Synchronous variant of admin operations
+├── DecibelSpotAdminDex     # Spot protocol admin operations (async)
+├── DecibelSpotAdminDexSync # Synchronous variant of spot admin operations
 └── OrderStatusClient       # Order status polling
 ```
+
+Write operations SHALL cover both products from the same client: perp entry functions live on
+`{package}::dex_accounts_entry`, spot entry functions on `{package}::dex_accounts_spot_entry`.
 
 ### 2.2 Component Interaction Diagram
 
@@ -111,7 +120,20 @@ Each network has a `Deployment` with:
 - `package`: Main smart contract address
 - `usdc`: USDC token contract address
 - `testc`: Test collateral address (testnet only)
-- `perp_engine_global`: Global perp engine address
+- `perp_engine_global`: Global perp engine address — the named object `named_object(package, "GlobalPerpEngine")`
+- `spot_engine_global`: Global spot engine address — the named object `named_object(package, "GlobalSpotEngine")`
+
+Both engine addresses SHALL be derived from `package`, so a custom deployment only needs its package
+address configured.
+
+**ABI availability.** On-chain writes SHALL be built from the bundled ABI
+(`src/decibel/abi/json/{testnet,mainnet}.json`), which SHALL cover the modules published under both
+`deployment.package` and `deployment.campaign_package`. When a function id is absent from the bundle,
+the SDK SHALL fetch its module's ABI from the fullnode
+(`GET /accounts/{addr}/module/{name}`) and cache the result — including a negative result — for the
+lifetime of the SDK instance. Only when that fetch also fails to produce the function SHALL the write
+raise `Cannot build transaction: missing ABI for <fn>`; the SDK SHALL NOT fabricate an entry function
+signature.
 
 ---
 
@@ -208,6 +230,36 @@ Example: `0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef`
 - Prices and sizes in API responses: `float64` (JSON `number`)
 - On-chain prices/sizes: integer chain units (6 decimal places for USDC)
 - Conversion: `chain_units = amount * 10^decimals`
+
+### 5.7 Product Selection
+
+Endpoints and models shared between perp and spot SHALL use an `asset_type` discriminator with the
+values `"perp"` and `"spot"`. The SDK SHALL model this as:
+
+- `AssetTypeName` — a `StrEnum` of `PERP = "perp"` / `SPOT = "spot"`, used where exactly one product
+  is meaningful (row values, market-scoped lookups).
+- `AssetTypeFilter` — `Literal["perp", "spot", "all"]`, used for list filters. `"all"` SHALL be
+  encoded by **omitting** the query parameter, not by sending `asset_type=all`.
+
+An absent `asset_type` on a response row SHALL be treated as `"perp"` (rows predating spot carry no
+discriminator). List readers SHALL default to `"perp"`. See
+[SPEC-REST.md §1.5](./SPEC-REST.md) for the per-endpoint table.
+
+### 5.8 Market Address Derivation
+
+Market addresses are Aptos named objects and SHALL be derivable offline from the market name:
+
+| Product | Derivation |
+|---------|-----------|
+| Perp | `named_object(perp_engine_global, bcs(name))` |
+| Spot | `named_object(spot_engine_global, bcs(name))`, where `spot_engine_global = named_object(package, b"GlobalSpotEngine")` |
+
+`bcs(name)` is the BCS encoding of the market name string (ULEB128 length prefix followed by UTF-8
+bytes). Note that perp derives from the **engine** address while spot derives from the **package**
+via the spot engine object; using the perp engine for spot yields a valid-looking but wrong address.
+
+Because a market address already encodes its product, address-keyed endpoints and WebSocket topics
+SHALL NOT take an `asset_type` parameter.
 
 ---
 

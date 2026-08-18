@@ -57,6 +57,26 @@ def _make_httpx_response(
     )
 
 
+_MODULE_FN = {
+    "name": "do_thing",
+    "visibility": "public",
+    "is_entry": True,
+    "is_view": False,
+    "generic_type_params": [],
+    "params": ["&signer", "u64"],
+    "return": [],
+}
+
+
+def _module_response(status_code: int = 200, functions: Any = None) -> httpx.Response:
+    """A fullnode ``/accounts/{addr}/module/{name}`` response."""
+    if status_code != 200:
+        return _make_httpx_response(status_code, text="not found")
+    return _make_httpx_response(
+        200, json_data={"abi": {"exposed_functions": functions or [_MODULE_FN]}}
+    )
+
+
 def _make_sdk(config: Any, account: Any, opts: Any = None) -> BaseSDK:
     with patch("decibel._base.AbiRegistry"), patch("decibel._base.RestClient"):
         sdk = BaseSDK(config=config, account=account, opts=opts)
@@ -667,6 +687,9 @@ class TestBaseSDKBuildTx:
         sdk = _make_sdk(test_config, mock_account)
         sdk._abi_registry = MagicMock()
         sdk._abi_registry.get_function.return_value = None  # Missing ABI
+        # ...and not published on chain either, so the runtime fetch can't rescue it.
+        sdk._http_client = AsyncMock()
+        sdk._http_client.get.return_value = _module_response(404)
 
         sender = MagicMock()
 
@@ -1456,6 +1479,9 @@ class TestBaseSDKSyncBuildTx:
         sdk = _make_sdk_sync(test_config, mock_account)
         sdk._abi_registry = MagicMock()
         sdk._abi_registry.get_function.return_value = None
+        # ...and not published on chain either, so the runtime fetch can't rescue it.
+        sdk._http_client = MagicMock()
+        sdk._http_client.get.return_value = _module_response(404)
 
         with patch("decibel._base.generate_random_replay_protection_nonce", return_value=333):
             with pytest.raises(ValueError, match="Cannot build transaction"):
@@ -1819,3 +1845,170 @@ class TestBaseSDKSyncSerializationMethods:
         result = sdk._serialize_signed_transaction(txn, sender_auth)
         assert isinstance(result, bytes)
         assert len(result) > 0
+
+
+# ---------------------------------------------------------------------------
+# Runtime ABI fallback
+# ---------------------------------------------------------------------------
+
+
+class TestResolveAbiFallback:
+    """`build_tx` falls back to a fullnode module fetch when the bundled ABI misses."""
+
+    def _sdk(self, config: Any, account: Any, *, bundled: Any = None) -> BaseSDK:
+        sdk = _make_sdk(config, account)
+        sdk._abi_registry = MagicMock()
+        sdk._abi_registry.get_function.return_value = bundled
+        sdk._http_client = AsyncMock()
+        return sdk
+
+    @pytest.mark.asyncio
+    async def test_bundled_hit_skips_the_fetch(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account, bundled=MagicMock())
+
+        assert await sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+        sdk._http_client.get.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_fetches_missing_module(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.return_value = _module_response()
+
+        func = await sdk._resolve_abi("0xabc::some_module::do_thing")
+
+        assert func is not None
+        assert func.name == "do_thing"
+        assert func.params == ["&signer", "u64"]
+        url = sdk._http_client.get.call_args.args[0]
+        assert url.endswith("/accounts/0xabc/module/some_module")
+
+    @pytest.mark.asyncio
+    async def test_fetched_abi_is_cached(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.return_value = _module_response()
+
+        assert await sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+        assert await sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+
+        # `_send_tx` builds twice (simulate, then for real) — the second build must not re-fetch.
+        assert sdk._http_client.get.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_unpublished_module_is_negative_cached(
+        self, test_config: Any, mock_account: Any
+    ) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.return_value = _module_response(404)
+
+        assert await sdk._resolve_abi("0xabc::gone::do_thing") is None
+        assert await sdk._resolve_abi("0xabc::gone::other") is None
+        assert sdk._http_client.get.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_transient_error_is_retried(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.side_effect = [
+            httpx.ConnectError("boom"),
+            _module_response(),
+        ]
+
+        assert await sdk._resolve_abi("0xabc::some_module::do_thing") is None
+        assert await sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+        assert sdk._http_client.get.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_server_error_is_retried(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.side_effect = [_module_response(503), _module_response()]
+
+        assert await sdk._resolve_abi("0xabc::some_module::do_thing") is None
+        assert await sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+        assert sdk._http_client.get.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_malformed_function_id_does_not_fetch(
+        self, test_config: Any, mock_account: Any
+    ) -> None:
+        sdk = self._sdk(test_config, mock_account)
+
+        assert await sdk._resolve_abi("0xabc::some_module") is None
+        assert await sdk._resolve_abi("0xabc::::do_thing") is None
+        sdk._http_client.get.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_function_absent_from_fetched_module(
+        self, test_config: Any, mock_account: Any
+    ) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.return_value = _module_response()
+
+        assert await sdk._resolve_abi("0xabc::some_module::not_there") is None
+
+    @pytest.mark.asyncio
+    async def test_build_tx_uses_the_fetched_abi(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.return_value = _module_response()
+
+        with patch("decibel._base.build_simple_transaction_sync") as mock_build:
+            with patch("decibel._base.generate_random_replay_protection_nonce", return_value=1):
+                await sdk.build_tx(
+                    MagicMock(
+                        function="0xabc::some_module::do_thing",
+                        function_arguments=[1],
+                        type_arguments=[],
+                    ),
+                    MagicMock(),
+                    gas_unit_price=100,
+                )
+
+        assert mock_build.call_args.kwargs["abi"].name == "do_thing"
+
+
+class TestResolveAbiFallbackSync:
+    def _sdk(self, config: Any, account: Any, *, bundled: Any = None) -> BaseSDKSync:
+        sdk = _make_sdk_sync(config, account)
+        sdk._abi_registry = MagicMock()
+        sdk._abi_registry.get_function.return_value = bundled
+        sdk._http_client = MagicMock()
+        return sdk
+
+    def test_bundled_hit_skips_the_fetch(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account, bundled=MagicMock())
+
+        assert sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+        sdk._http_client.get.assert_not_called()
+
+    def test_fetches_missing_module(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.return_value = _module_response()
+
+        func = sdk._resolve_abi("0xabc::some_module::do_thing")
+
+        assert func is not None
+        assert func.name == "do_thing"
+
+    def test_fetched_abi_is_cached(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.return_value = _module_response()
+
+        assert sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+        assert sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+        assert sdk._http_client.get.call_count == 1
+
+    def test_unpublished_module_is_negative_cached(
+        self, test_config: Any, mock_account: Any
+    ) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.return_value = _module_response(404)
+
+        assert sdk._resolve_abi("0xabc::gone::do_thing") is None
+        assert sdk._resolve_abi("0xabc::gone::other") is None
+        assert sdk._http_client.get.call_count == 1
+
+    def test_transient_error_is_retried(self, test_config: Any, mock_account: Any) -> None:
+        sdk = self._sdk(test_config, mock_account)
+        sdk._http_client.get.side_effect = [httpx.ConnectError("boom"), _module_response()]
+
+        assert sdk._resolve_abi("0xabc::some_module::do_thing") is None
+        assert sdk._resolve_abi("0xabc::some_module::do_thing") is not None
+        assert sdk._http_client.get.call_count == 2

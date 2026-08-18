@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import TYPE_CHECKING, Any, TypeVar, cast
+
+from aptos_sdk.account_address import AccountAddress
 
 from decibel._base import BaseSDK, BaseSDKOptions, BaseSDKOptionsSync, BaseSDKSync
 from decibel._order_status import OrderStatusClient
@@ -12,6 +15,9 @@ from decibel._order_types import (
     PlaceOrderFailure,
     PlaceOrderResult,
     PlaceOrderSuccess,
+    PlaceSpotOrderFailure,
+    PlaceSpotOrderResult,
+    PlaceSpotOrderSuccess,
 )
 from decibel._subaccount_types import RenameSubaccount, RenameSubaccountArgs
 from decibel._transaction_builder import InputEntryFunctionData
@@ -19,17 +25,24 @@ from decibel._utils import (
     bps_to_chain_units,
     get_market_addr,
     get_primary_subaccount_addr,
+    get_spot_market_addr,
     post_request,
     post_request_sync,
 )
 
+from ._fft_payloads import (
+    build_claim_unlock_payload,
+    build_lock_from_subaccount_payload,
+    build_lock_payload,
+    build_open_trial_payload,
+    build_settle_trial_payload,
+)
 from ._types import TimeInForce
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
     from aptos_sdk.account import Account
-    from aptos_sdk.account_address import AccountAddress
 
     from decibel._constants import DecibelConfig
     from decibel._transaction_builder import SimpleTransaction
@@ -39,6 +52,13 @@ __all__ = [
     "DecibelWriteDex",
     "DecibelWriteDexSync",
     "TimeInForce",
+    # Funded-first-trade payload builders, for callers that sign externally (wallet flows)
+    # rather than through the SDK's account.
+    "build_claim_unlock_payload",
+    "build_lock_from_subaccount_payload",
+    "build_lock_payload",
+    "build_open_trial_payload",
+    "build_settle_trial_payload",
 ]
 
 logger = logging.getLogger(__name__)
@@ -46,10 +66,97 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-def _round_to_tick_size(value: int | float, tick_size: int | float) -> int | float:
+def _round_price_to_tick(value: int | float, tick_size: int | float) -> int | float:
+    """Round a price to the nearest tick. Unit-agnostic: ``value`` and ``tick_size`` must share
+    a unit, and the write methods pass both in chain units.
+
+    Distinct from the public :func:`decibel.round_to_tick_size`, which takes a *display-unit*
+    price with a chain-unit integer ``tick_size`` and does the scaling itself via
+    ``px_decimals``. Mixing the two conventions silently mis-rounds by a factor of
+    ``10**px_decimals``.
+    """
     if value == 0 or tick_size == 0:
         return 0.0
     return round(value / tick_size) * tick_size
+
+
+def _round_price_to_tick_for_side(
+    value: int | float, tick_size: int | float, is_buy: bool
+) -> int | float:
+    """Round a price to the tick in the SIDE-SAFE direction for a limit/IOC bound.
+
+    Buys round down (never pay above the caller's cap), sells round up (never accept below the
+    caller's floor). Nearest-tick rounding would let a non-aligned cap cross the user's
+    configured limit/slippage. The epsilon absorbs IEEE-754 division noise so an
+    already-aligned price stays put.
+
+    Unit-agnostic like :func:`_round_price_to_tick`, unlike the public
+    :func:`decibel.round_to_tick_size_for_side` which takes a display-unit price plus
+    ``px_decimals``.
+    """
+    if value == 0 or tick_size == 0:
+        return 0.0
+    ticks = value / tick_size
+    rounded = math.floor(ticks + 1e-9) if is_buy else math.ceil(ticks - 1e-9)
+    return rounded * tick_size
+
+
+def _addresses_equal(a: str, b: str) -> bool:
+    """Compare two Aptos addresses tolerant of leading-zero / short-form differences."""
+    try:
+        return AccountAddress.from_str_relaxed(a) == AccountAddress.from_str_relaxed(b)
+    except Exception:
+        return a == b
+
+
+def _extract_spot_order_placement(
+    tx_response: dict[str, Any], expected_subaccount_addr: str
+) -> tuple[str | None, bool]:
+    """Return ``(order_id, pending_cbs)`` for a spot placement transaction.
+
+    Spot placement is CBS-backed and async: when funding needs a rate-limited CBS withdrawal the
+    transaction succeeds but the order is only queued (``SpotOrderPendingCbsEvent``) rather than
+    resting (``OrderEvent``).
+    """
+    try:
+        events: list[dict[str, Any]] | None = tx_response.get("events")
+        if events is None:
+            return None, False
+        for event in events:
+            event_type = str(event.get("type", ""))
+            event_data: dict[str, Any] | None = event.get("data")
+            if event_data is None:
+                continue
+            if "market_types::OrderEvent" in event_type:
+                user = event_data.get("user")
+                if isinstance(user, str) and _addresses_equal(user, expected_subaccount_addr):
+                    order_id = event_data.get("order_id")
+                    return (str(order_id) if order_id is not None else None), False
+            if "spot_pending_cbs_queue::SpotOrderPendingCbsEvent" in event_type:
+                sub = event_data.get("subaccount_addr")
+                if isinstance(sub, str) and _addresses_equal(sub, expected_subaccount_addr):
+                    order_id = event_data.get("order_id")
+                    return (str(order_id) if order_id is not None else None), True
+        return None, False
+    except Exception as e:
+        logger.error("Error extracting spot order placement from transaction: %s", e)
+        return None, False
+
+
+def _resolve_spot_market_addr(
+    market_name: str | None, market_addr: str | None, package: str
+) -> str:
+    """Resolve a spot market reference; at least one of name/address is required.
+
+    ``market_name`` wins when both are supplied, matching the perp write methods. Note the
+    derivation differs from the perp one: spot markets are named objects of the package's
+    ``GlobalSpotEngine``, not of ``perp_engine_global``.
+    """
+    if market_name is not None:
+        return get_spot_market_addr(market_name, package)
+    if market_addr is not None:
+        return market_addr
+    raise ValueError("Either market_name or market_addr must be provided")
 
 
 class DecibelWriteDex(BaseSDK):
@@ -148,6 +255,17 @@ class DecibelWriteDex(BaseSDK):
             )
         )
 
+    async def admin_create_subaccount(self, owner_address: str) -> dict[str, Any]:
+        """Create a new subaccount for ``owner_address``. The signer must be an admin."""
+        pkg = self._config.deployment.package
+        return await self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::dex_accounts_entry::admin_create_new_subaccount",
+                type_arguments=[],
+                function_arguments=[owner_address],
+            )
+        )
+
     async def deposit(
         self,
         amount: int,
@@ -178,15 +296,45 @@ class DecibelWriteDex(BaseSDK):
         txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
+        """Withdraw ``amount`` (u64 chain units) of USDC collateral from the subaccount.
+
+        Targets ``withdraw_from_cross_collateral``: withdrawals come out of the
+        cross-collateral pool, leaving non-collateral balances alone (see
+        :meth:`withdraw_non_collateral` for those).
+        """
         pkg = self._config.deployment.package
         usdc = self._config.deployment.usdc
 
         async def _send(addr: str) -> dict[str, Any]:
             return await self._send_tx(
                 InputEntryFunctionData(
-                    function=f"{pkg}::dex_accounts_entry::withdraw_from_subaccount",
+                    function=f"{pkg}::dex_accounts_entry::withdraw_from_cross_collateral",
                     type_arguments=[],
                     function_arguments=[addr, usdc, amount],
+                ),
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def withdraw_non_collateral(
+        self,
+        asset_addr: str,
+        amount: int,
+        subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Withdraw a non-collateral asset (spot balance) out of the subaccount."""
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_entry::withdraw_from_non_collateral",
+                    type_arguments=[],
+                    function_arguments=[addr, asset_addr, amount],
                 ),
                 txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
@@ -245,29 +393,29 @@ class DecibelWriteDex(BaseSDK):
         try:
             market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
 
-            final_price = _round_to_tick_size(price, tick_size) if tick_size else price
+            final_price = _round_price_to_tick(price, tick_size) if tick_size else price
             final_stop_price = (
-                _round_to_tick_size(stop_price, tick_size)
+                _round_price_to_tick(stop_price, tick_size)
                 if stop_price is not None and tick_size
                 else stop_price
             )
             final_tp_trigger = (
-                _round_to_tick_size(tp_trigger_price, tick_size)
+                _round_price_to_tick(tp_trigger_price, tick_size)
                 if tp_trigger_price is not None and tick_size
                 else tp_trigger_price
             )
             final_tp_limit = (
-                _round_to_tick_size(tp_limit_price, tick_size)
+                _round_price_to_tick(tp_limit_price, tick_size)
                 if tp_limit_price is not None and tick_size
                 else tp_limit_price
             )
             final_sl_trigger = (
-                _round_to_tick_size(sl_trigger_price, tick_size)
+                _round_price_to_tick(sl_trigger_price, tick_size)
                 if sl_trigger_price is not None and tick_size
                 else sl_trigger_price
             )
             final_sl_limit = (
-                _round_to_tick_size(sl_limit_price, tick_size)
+                _round_price_to_tick(sl_limit_price, tick_size)
                 if sl_limit_price is not None and tick_size
                 else sl_limit_price
             )
@@ -424,6 +572,61 @@ class DecibelWriteDex(BaseSDK):
                     function=f"{pkg}::dex_accounts_entry::cancel_order_to_subaccount",
                     type_arguments=[],
                     function_arguments=[addr, int(order_id), resolved_market_addr],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def update_order(
+        self,
+        *,
+        order_id: int | str,
+        market_addr: str,
+        price: int | float,
+        size: int | float,
+        is_buy: bool,
+        time_in_force: TimeInForce,
+        is_reduce_only: bool,
+        tp_trigger_price: int | float | None = None,
+        tp_limit_price: int | float | None = None,
+        sl_trigger_price: int | float | None = None,
+        sl_limit_price: int | float | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Update an existing order's parameters, including its TP/SL legs.
+
+        The TP/SL arguments are Move ``Option``s: leaving one as ``None`` *removes* that leg
+        from the order rather than preserving it.
+        """
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_entry::update_order_to_subaccount",
+                    type_arguments=[],
+                    function_arguments=[
+                        addr,
+                        int(order_id),
+                        market_addr,
+                        price,
+                        size,
+                        is_buy,
+                        time_in_force,
+                        is_reduce_only,
+                        tp_trigger_price,
+                        tp_limit_price,
+                        sl_trigger_price,
+                        sl_limit_price,
+                        None,  # builder_address
+                        None,  # builder_fees
+                    ],
                 ),
                 account_override,
                 txn_submit_timeout=txn_submit_timeout,
@@ -604,22 +807,22 @@ class DecibelWriteDex(BaseSDK):
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         final_tp_trigger = (
-            _round_to_tick_size(tp_trigger_price, tick_size)
+            _round_price_to_tick(tp_trigger_price, tick_size)
             if tp_trigger_price is not None and tick_size
             else tp_trigger_price
         )
         final_tp_limit = (
-            _round_to_tick_size(tp_limit_price, tick_size)
+            _round_price_to_tick(tp_limit_price, tick_size)
             if tp_limit_price is not None and tick_size
             else tp_limit_price
         )
         final_sl_trigger = (
-            _round_to_tick_size(sl_trigger_price, tick_size)
+            _round_price_to_tick(sl_trigger_price, tick_size)
             if sl_trigger_price is not None and tick_size
             else sl_trigger_price
         )
         final_sl_limit = (
-            _round_to_tick_size(sl_limit_price, tick_size)
+            _round_price_to_tick(sl_limit_price, tick_size)
             if sl_limit_price is not None and tick_size
             else sl_limit_price
         )
@@ -1088,6 +1291,414 @@ class DecibelWriteDex(BaseSDK):
 
         return await self.send_subaccount_tx(_send, subaccount_addr)
 
+    # ======= SPOT TRADING =======
+    #
+    # All spot methods are subaccount-scoped (defaulting to the signer's primary subaccount),
+    # mirroring the perp write surface. The wallet-direct entry functions
+    # (`place_spot_order`, `place_spot_bulk_order`, ...) are not exposed here.
+
+    def _resolve_spot_market_addr(self, market_name: str | None, market_addr: str | None) -> str:
+        return _resolve_spot_market_addr(market_name, market_addr, self._config.deployment.package)
+
+    def _extract_spot_order_placement(
+        self,
+        tx_response: dict[str, Any],
+        subaccount_addr: str | None = None,
+    ) -> tuple[str | None, bool]:
+        """Return ``(order_id, pending_cbs)`` for a spot placement transaction."""
+        expected = subaccount_addr or get_primary_subaccount_addr(
+            self._account.address(),
+            self._config.compat_version,
+            self._config.deployment.package,
+        )
+        return _extract_spot_order_placement(tx_response, expected)
+
+    async def place_spot_order(
+        self,
+        *,
+        price: int | float,
+        size: int | float,
+        is_buy: bool,
+        time_in_force: TimeInForce,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        builder_addr: str | None = None,
+        builder_fee: float | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        tick_size: int | float | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> PlaceSpotOrderResult:
+        """Place a spot order. One of ``market_name`` / ``market_addr`` is required.
+
+        On success the result carries ``pending_cbs``: ``True`` means the transaction
+        committed but the order is queued behind a rate-limited CBS withdrawal rather than
+        resting on the book — poll the order endpoints for the real acknowledgment.
+        """
+        try:
+            resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+            # Side-safe, not nearest: spot prices are limit/IOC bounds, so rounding must
+            # never cross the caller's cap (buy) or floor (sell).
+            final_price = (
+                _round_price_to_tick_for_side(price, tick_size, is_buy) if tick_size else price
+            )
+            final_builder_fee = bps_to_chain_units(builder_fee) if builder_fee is not None else None
+            pkg = self._config.deployment.package
+
+            async def _send(addr: str) -> dict[str, Any]:
+                return await self._send_tx(
+                    InputEntryFunctionData(
+                        function=(
+                            f"{pkg}::dex_accounts_spot_entry::place_spot_order_to_subaccount"
+                        ),
+                        type_arguments=[],
+                        function_arguments=[
+                            addr,
+                            resolved_market_addr,
+                            final_price,
+                            size,
+                            is_buy,
+                            time_in_force,
+                            builder_addr,
+                            final_builder_fee,
+                        ],
+                    ),
+                    account_override,
+                    txn_submit_timeout=txn_submit_timeout,
+                    txn_confirm_timeout=txn_confirm_timeout,
+                )
+
+            tx_response = await self.send_subaccount_tx(_send, subaccount_addr)
+            order_id, pending_cbs = self._extract_spot_order_placement(tx_response, subaccount_addr)
+
+            return PlaceSpotOrderSuccess(
+                success=True,
+                orderId=order_id,
+                pendingCbs=pending_cbs,
+                transactionHash=tx_response.get("hash", ""),
+            )
+        except Exception as e:
+            logger.exception(
+                "Error placing spot order: type=%s message=%s", type(e).__name__, str(e)
+            )
+            return PlaceSpotOrderFailure(
+                success=False,
+                error=f"{type(e).__name__}: {str(e)}",
+            )
+
+    async def cancel_spot_order(
+        self,
+        *,
+        order_id: int | str,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_spot_entry::cancel_spot_order_to_subaccount",
+                    type_arguments=[],
+                    function_arguments=[addr, resolved_market_addr, int(order_id)],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def place_spot_bulk_order(
+        self,
+        *,
+        sequence_number: int,
+        bid_prices: list[int],
+        bid_sizes: list[int],
+        ask_prices: list[int],
+        ask_sizes: list[int],
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        builder_addr: str | None = None,
+        builder_fee: float | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Place (or replace) a spot bulk order.
+
+        Funds are sourced from the subaccount's primary fungible store only — the transaction
+        aborts if it is short on either side. ``sequence_number`` must strictly increase per
+        market.
+        """
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        final_builder_fee = bps_to_chain_units(builder_fee) if builder_fee is not None else None
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry::place_spot_bulk_order_to_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[
+                        addr,
+                        resolved_market_addr,
+                        sequence_number,
+                        bid_prices,
+                        bid_sizes,
+                        ask_prices,
+                        ask_sizes,
+                        builder_addr,
+                        final_builder_fee,
+                    ],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def cancel_spot_bulk_order(
+        self,
+        *,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry::cancel_spot_bulk_order_to_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, resolved_market_addr],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def cancel_spot_bulk_order_at_price_level(
+        self,
+        *,
+        price: int,
+        is_buy: bool,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry"
+                        "::cancel_spot_bulk_order_at_price_level_to_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, resolved_market_addr, price, is_buy],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def approve_max_spot_builder_fee(
+        self,
+        *,
+        builder_addr: str,
+        max_fee: int | float,
+        subaccount_addr: str | None = None,
+    ) -> dict[str, Any]:
+        """Approve a per-builder max fee (in basis points) for spot orders from a subaccount.
+
+        Unlike perp, the builder address may be a subaccount or a primary wallet.
+        """
+        pkg = self._config.deployment.package
+        final_max_fee = bps_to_chain_units(max_fee)
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry"
+                        "::approve_max_spot_builder_fee_for_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, builder_addr, final_max_fee],
+                )
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def revoke_max_spot_builder_fee(
+        self,
+        *,
+        builder_addr: str,
+        subaccount_addr: str | None = None,
+    ) -> dict[str, Any]:
+        """Revoke a prior spot builder-fee approval made by the subaccount."""
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry"
+                        "::revoke_max_spot_builder_fee_for_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, builder_addr],
+                )
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def set_hold_as_non_collateral(
+        self,
+        *,
+        asset_addr: str,
+        hold: bool,
+        subaccount_addr: str | None = None,
+    ) -> dict[str, Any]:
+        """Set ``HOLD_AS_NON_COLLATERAL`` for an asset on the subaccount.
+
+        When enabled, future deposits of the asset stay in the primary fungible store
+        (non-collateral) instead of routing into CBS collateral. Flag-only: existing balances
+        are not moved.
+        """
+        pkg = self._config.deployment.package
+
+        async def _send(addr: str) -> dict[str, Any]:
+            return await self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry::set_hold_as_non_collateral_for_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, asset_addr, hold],
+                )
+            )
+
+        return await self.send_subaccount_tx(_send, subaccount_addr)
+
+    async def process_spot_pending_requests(
+        self,
+        *,
+        max_fills: int,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Crank pending async spot matching requests — permissionless, no subaccount."""
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        pkg = self._config.deployment.package
+        return await self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::dex_accounts_spot_entry::process_spot_pending_requests",
+                type_arguments=[],
+                function_arguments=[resolved_market_addr, max_fills],
+            ),
+            txn_submit_timeout=txn_submit_timeout,
+            txn_confirm_timeout=txn_confirm_timeout,
+        )
+
+    # ======= CAMPAIGNS / FUNDED FIRST TRADE =======
+
+    def _campaign_addrs(self, campaign_addr: str | None = None) -> tuple[str, str]:
+        """Return ``(campaign_package, campaign_addr)`` for the current deployment.
+
+        The campaign *object* address falls back to the package address, matching the
+        readers. Raises if the deployment has no campaign package configured.
+        """
+        package = self._config.deployment.campaign_package
+        if not package:
+            raise ValueError(
+                "This deployment has no campaign package configured; "
+                "set Deployment.campaign_package to use campaign / FFT methods"
+            )
+        resolved = campaign_addr or self._config.deployment.fft_campaign_addr or package
+        return package, resolved
+
+    async def claim_campaign_reward(self, campaign_id: int) -> dict[str, Any]:
+        """Claim a reward from a campaign by ID. The signer must have an allocation in it."""
+        campaign_package, _ = self._campaign_addrs()
+        return await self._send_tx(
+            InputEntryFunctionData(
+                function=f"{campaign_package}::campaign_manager::claim_by_id",
+                type_arguments=[],
+                # u64 on the wire as a decimal string, matching the FFT payload builders.
+                function_arguments=[str(campaign_id)],
+            )
+        )
+
+    async def open_fft_trial(
+        self, *, owner: str, campaign_addr: str | None = None
+    ) -> dict[str, Any]:
+        """Open a Funded First Trade trial for ``owner``.
+
+        The signer must be the owner, or hold a ``TradePerpsAllMarkets`` delegation on the
+        owner's primary subaccount (session key).
+        """
+        campaign_package, resolved = self._campaign_addrs(campaign_addr)
+        return await self._send_tx(
+            build_open_trial_payload(
+                campaign_package=campaign_package, campaign_addr=resolved, owner=owner
+            )
+        )
+
+    async def claim_fft_unlock(
+        self, *, lock_id: int, owner: str, campaign_addr: str | None = None
+    ) -> dict[str, Any]:
+        """Claim a matured FFT lock for ``owner``. Same signer rule as :meth:`open_fft_trial`."""
+        campaign_package, resolved = self._campaign_addrs(campaign_addr)
+        return await self._send_tx(
+            build_claim_unlock_payload(
+                campaign_package=campaign_package,
+                campaign_addr=resolved,
+                lock_id=lock_id,
+                owner=owner,
+            )
+        )
+
+    async def settle_fft_trial(
+        self, *, trial_id: int, campaign_addr: str | None = None
+    ) -> dict[str, Any]:
+        """Settle an expired FFT trial — permissionless, any signer works."""
+        campaign_package, resolved = self._campaign_addrs(campaign_addr)
+        return await self._send_tx(
+            build_settle_trial_payload(
+                campaign_package=campaign_package, campaign_addr=resolved, trial_id=trial_id
+            )
+        )
+
 
 class DecibelWriteDexSync(BaseSDKSync):
     def __init__(
@@ -1183,6 +1794,17 @@ class DecibelWriteDexSync(BaseSDKSync):
             )
         )
 
+    def admin_create_subaccount(self, owner_address: str) -> dict[str, Any]:
+        """Create a new subaccount for ``owner_address``. The signer must be an admin."""
+        pkg = self._config.deployment.package
+        return self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::dex_accounts_entry::admin_create_new_subaccount",
+                type_arguments=[],
+                function_arguments=[owner_address],
+            )
+        )
+
     def deposit(
         self,
         amount: int,
@@ -1213,15 +1835,45 @@ class DecibelWriteDexSync(BaseSDKSync):
         txn_submit_timeout: float | None = None,
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
+        """Withdraw ``amount`` (u64 chain units) of USDC collateral from the subaccount.
+
+        Targets ``withdraw_from_cross_collateral``: withdrawals come out of the
+        cross-collateral pool, leaving non-collateral balances alone (see
+        :meth:`withdraw_non_collateral` for those).
+        """
         pkg = self._config.deployment.package
         usdc = self._config.deployment.usdc
 
         def _send(addr: str) -> dict[str, Any]:
             return self._send_tx(
                 InputEntryFunctionData(
-                    function=f"{pkg}::dex_accounts_entry::withdraw_from_subaccount",
+                    function=f"{pkg}::dex_accounts_entry::withdraw_from_cross_collateral",
                     type_arguments=[],
                     function_arguments=[addr, usdc, amount],
+                ),
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def withdraw_non_collateral(
+        self,
+        asset_addr: str,
+        amount: int,
+        subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Withdraw a non-collateral asset (spot balance) out of the subaccount."""
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_entry::withdraw_from_non_collateral",
+                    type_arguments=[],
+                    function_arguments=[addr, asset_addr, amount],
                 ),
                 txn_submit_timeout=txn_submit_timeout,
                 txn_confirm_timeout=txn_confirm_timeout,
@@ -1280,29 +1932,29 @@ class DecibelWriteDexSync(BaseSDKSync):
         try:
             market_addr = get_market_addr(market_name, self._config.deployment.perp_engine_global)
 
-            final_price = _round_to_tick_size(price, tick_size) if tick_size else price
+            final_price = _round_price_to_tick(price, tick_size) if tick_size else price
             final_stop_price = (
-                _round_to_tick_size(stop_price, tick_size)
+                _round_price_to_tick(stop_price, tick_size)
                 if stop_price is not None and tick_size
                 else stop_price
             )
             final_tp_trigger = (
-                _round_to_tick_size(tp_trigger_price, tick_size)
+                _round_price_to_tick(tp_trigger_price, tick_size)
                 if tp_trigger_price is not None and tick_size
                 else tp_trigger_price
             )
             final_tp_limit = (
-                _round_to_tick_size(tp_limit_price, tick_size)
+                _round_price_to_tick(tp_limit_price, tick_size)
                 if tp_limit_price is not None and tick_size
                 else tp_limit_price
             )
             final_sl_trigger = (
-                _round_to_tick_size(sl_trigger_price, tick_size)
+                _round_price_to_tick(sl_trigger_price, tick_size)
                 if sl_trigger_price is not None and tick_size
                 else sl_trigger_price
             )
             final_sl_limit = (
-                _round_to_tick_size(sl_limit_price, tick_size)
+                _round_price_to_tick(sl_limit_price, tick_size)
                 if sl_limit_price is not None and tick_size
                 else sl_limit_price
             )
@@ -1459,6 +2111,61 @@ class DecibelWriteDexSync(BaseSDKSync):
                     function=f"{pkg}::dex_accounts_entry::cancel_order_to_subaccount",
                     type_arguments=[],
                     function_arguments=[addr, int(order_id), resolved_market_addr],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def update_order(
+        self,
+        *,
+        order_id: int | str,
+        market_addr: str,
+        price: int | float,
+        size: int | float,
+        is_buy: bool,
+        time_in_force: TimeInForce,
+        is_reduce_only: bool,
+        tp_trigger_price: int | float | None = None,
+        tp_limit_price: int | float | None = None,
+        sl_trigger_price: int | float | None = None,
+        sl_limit_price: int | float | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Update an existing order's parameters, including its TP/SL legs.
+
+        The TP/SL arguments are Move ``Option``s: leaving one as ``None`` *removes* that leg
+        from the order rather than preserving it.
+        """
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_entry::update_order_to_subaccount",
+                    type_arguments=[],
+                    function_arguments=[
+                        addr,
+                        int(order_id),
+                        market_addr,
+                        price,
+                        size,
+                        is_buy,
+                        time_in_force,
+                        is_reduce_only,
+                        tp_trigger_price,
+                        tp_limit_price,
+                        sl_trigger_price,
+                        sl_limit_price,
+                        None,  # builder_address
+                        None,  # builder_fees
+                    ],
                 ),
                 account_override,
                 txn_submit_timeout=txn_submit_timeout,
@@ -1639,22 +2346,22 @@ class DecibelWriteDexSync(BaseSDKSync):
         txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         final_tp_trigger = (
-            _round_to_tick_size(tp_trigger_price, tick_size)
+            _round_price_to_tick(tp_trigger_price, tick_size)
             if tp_trigger_price is not None and tick_size
             else tp_trigger_price
         )
         final_tp_limit = (
-            _round_to_tick_size(tp_limit_price, tick_size)
+            _round_price_to_tick(tp_limit_price, tick_size)
             if tp_limit_price is not None and tick_size
             else tp_limit_price
         )
         final_sl_trigger = (
-            _round_to_tick_size(sl_trigger_price, tick_size)
+            _round_price_to_tick(sl_trigger_price, tick_size)
             if sl_trigger_price is not None and tick_size
             else sl_trigger_price
         )
         final_sl_limit = (
-            _round_to_tick_size(sl_limit_price, tick_size)
+            _round_price_to_tick(sl_limit_price, tick_size)
             if sl_limit_price is not None and tick_size
             else sl_limit_price
         )
@@ -1787,8 +2494,8 @@ class DecibelWriteDexSync(BaseSDKSync):
     def cancel_twap_order(
         self,
         *,
-        order_id: str,
         market_addr: str,
+        order_id: int | str,
         subaccount_addr: str | None = None,
         account_override: Account | None = None,
         txn_submit_timeout: float | None = None,
@@ -1888,6 +2595,8 @@ class DecibelWriteDexSync(BaseSDKSync):
         *,
         account_override: Account | None = None,
         subaccount_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
     ) -> dict[str, Any]:
         pkg = self._config.deployment.package
 
@@ -1917,6 +2626,8 @@ class DecibelWriteDexSync(BaseSDKSync):
                     ],
                 ),
                 account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
             )
 
         return self.send_subaccount_tx(_send, subaccount_addr)
@@ -2118,3 +2829,407 @@ class DecibelWriteDexSync(BaseSDKSync):
             )
 
         return self.send_subaccount_tx(_send, subaccount_addr)
+
+    # ======= SPOT TRADING =======
+    #
+    # Sync mirror of the async spot surface on `DecibelWriteDex`.
+
+    def _resolve_spot_market_addr(self, market_name: str | None, market_addr: str | None) -> str:
+        return _resolve_spot_market_addr(market_name, market_addr, self._config.deployment.package)
+
+    def _extract_spot_order_placement(
+        self,
+        tx_response: dict[str, Any],
+        subaccount_addr: str | None = None,
+    ) -> tuple[str | None, bool]:
+        """Return ``(order_id, pending_cbs)`` for a spot placement transaction."""
+        expected = subaccount_addr or get_primary_subaccount_addr(
+            self._account.address(),
+            self._config.compat_version,
+            self._config.deployment.package,
+        )
+        return _extract_spot_order_placement(tx_response, expected)
+
+    def place_spot_order(
+        self,
+        *,
+        price: int | float,
+        size: int | float,
+        is_buy: bool,
+        time_in_force: TimeInForce,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        builder_addr: str | None = None,
+        builder_fee: float | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        tick_size: int | float | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> PlaceSpotOrderResult:
+        """Place a spot order. One of ``market_name`` / ``market_addr`` is required.
+
+        On success the result carries ``pending_cbs``: ``True`` means the transaction
+        committed but the order is queued behind a rate-limited CBS withdrawal rather than
+        resting on the book — poll the order endpoints for the real acknowledgment.
+        """
+        try:
+            resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+            # Side-safe, not nearest: spot prices are limit/IOC bounds, so rounding must
+            # never cross the caller's cap (buy) or floor (sell).
+            final_price = (
+                _round_price_to_tick_for_side(price, tick_size, is_buy) if tick_size else price
+            )
+            final_builder_fee = bps_to_chain_units(builder_fee) if builder_fee is not None else None
+            pkg = self._config.deployment.package
+
+            def _send(addr: str) -> dict[str, Any]:
+                return self._send_tx(
+                    InputEntryFunctionData(
+                        function=(
+                            f"{pkg}::dex_accounts_spot_entry::place_spot_order_to_subaccount"
+                        ),
+                        type_arguments=[],
+                        function_arguments=[
+                            addr,
+                            resolved_market_addr,
+                            final_price,
+                            size,
+                            is_buy,
+                            time_in_force,
+                            builder_addr,
+                            final_builder_fee,
+                        ],
+                    ),
+                    account_override,
+                    txn_submit_timeout=txn_submit_timeout,
+                    txn_confirm_timeout=txn_confirm_timeout,
+                )
+
+            tx_response = self.send_subaccount_tx(_send, subaccount_addr)
+            order_id, pending_cbs = self._extract_spot_order_placement(tx_response, subaccount_addr)
+
+            return PlaceSpotOrderSuccess(
+                success=True,
+                orderId=order_id,
+                pendingCbs=pending_cbs,
+                transactionHash=tx_response.get("hash", ""),
+            )
+        except Exception as e:
+            logger.exception(
+                "Error placing spot order: type=%s message=%s", type(e).__name__, str(e)
+            )
+            return PlaceSpotOrderFailure(
+                success=False,
+                error=f"{type(e).__name__}: {str(e)}",
+            )
+
+    def cancel_spot_order(
+        self,
+        *,
+        order_id: int | str,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=f"{pkg}::dex_accounts_spot_entry::cancel_spot_order_to_subaccount",
+                    type_arguments=[],
+                    function_arguments=[addr, resolved_market_addr, int(order_id)],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def place_spot_bulk_order(
+        self,
+        *,
+        sequence_number: int,
+        bid_prices: list[int],
+        bid_sizes: list[int],
+        ask_prices: list[int],
+        ask_sizes: list[int],
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        builder_addr: str | None = None,
+        builder_fee: float | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Place (or replace) a spot bulk order.
+
+        Funds are sourced from the subaccount's primary fungible store only — the transaction
+        aborts if it is short on either side. ``sequence_number`` must strictly increase per
+        market.
+        """
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        final_builder_fee = bps_to_chain_units(builder_fee) if builder_fee is not None else None
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry::place_spot_bulk_order_to_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[
+                        addr,
+                        resolved_market_addr,
+                        sequence_number,
+                        bid_prices,
+                        bid_sizes,
+                        ask_prices,
+                        ask_sizes,
+                        builder_addr,
+                        final_builder_fee,
+                    ],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def cancel_spot_bulk_order(
+        self,
+        *,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry::cancel_spot_bulk_order_to_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, resolved_market_addr],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def cancel_spot_bulk_order_at_price_level(
+        self,
+        *,
+        price: int,
+        is_buy: bool,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        subaccount_addr: str | None = None,
+        account_override: Account | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry"
+                        "::cancel_spot_bulk_order_at_price_level_to_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, resolved_market_addr, price, is_buy],
+                ),
+                account_override,
+                txn_submit_timeout=txn_submit_timeout,
+                txn_confirm_timeout=txn_confirm_timeout,
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def approve_max_spot_builder_fee(
+        self,
+        *,
+        builder_addr: str,
+        max_fee: int | float,
+        subaccount_addr: str | None = None,
+    ) -> dict[str, Any]:
+        """Approve a per-builder max fee (in basis points) for spot orders from a subaccount.
+
+        Unlike perp, the builder address may be a subaccount or a primary wallet.
+        """
+        pkg = self._config.deployment.package
+        final_max_fee = bps_to_chain_units(max_fee)
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry"
+                        "::approve_max_spot_builder_fee_for_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, builder_addr, final_max_fee],
+                )
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def revoke_max_spot_builder_fee(
+        self,
+        *,
+        builder_addr: str,
+        subaccount_addr: str | None = None,
+    ) -> dict[str, Any]:
+        """Revoke a prior spot builder-fee approval made by the subaccount."""
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry"
+                        "::revoke_max_spot_builder_fee_for_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, builder_addr],
+                )
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def set_hold_as_non_collateral(
+        self,
+        *,
+        asset_addr: str,
+        hold: bool,
+        subaccount_addr: str | None = None,
+    ) -> dict[str, Any]:
+        """Set ``HOLD_AS_NON_COLLATERAL`` for an asset on the subaccount.
+
+        When enabled, future deposits of the asset stay in the primary fungible store
+        (non-collateral) instead of routing into CBS collateral. Flag-only: existing balances
+        are not moved.
+        """
+        pkg = self._config.deployment.package
+
+        def _send(addr: str) -> dict[str, Any]:
+            return self._send_tx(
+                InputEntryFunctionData(
+                    function=(
+                        f"{pkg}::dex_accounts_spot_entry::set_hold_as_non_collateral_for_subaccount"
+                    ),
+                    type_arguments=[],
+                    function_arguments=[addr, asset_addr, hold],
+                )
+            )
+
+        return self.send_subaccount_tx(_send, subaccount_addr)
+
+    def process_spot_pending_requests(
+        self,
+        *,
+        max_fills: int,
+        market_name: str | None = None,
+        market_addr: str | None = None,
+        txn_submit_timeout: float | None = None,
+        txn_confirm_timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Crank pending async spot matching requests — permissionless, no subaccount."""
+        resolved_market_addr = self._resolve_spot_market_addr(market_name, market_addr)
+        pkg = self._config.deployment.package
+        return self._send_tx(
+            InputEntryFunctionData(
+                function=f"{pkg}::dex_accounts_spot_entry::process_spot_pending_requests",
+                type_arguments=[],
+                function_arguments=[resolved_market_addr, max_fills],
+            ),
+            txn_submit_timeout=txn_submit_timeout,
+            txn_confirm_timeout=txn_confirm_timeout,
+        )
+
+    # ======= CAMPAIGNS / FUNDED FIRST TRADE =======
+
+    def _campaign_addrs(self, campaign_addr: str | None = None) -> tuple[str, str]:
+        """Return ``(campaign_package, campaign_addr)`` for the current deployment.
+
+        The campaign *object* address falls back to the package address, matching the
+        readers. Raises if the deployment has no campaign package configured.
+        """
+        package = self._config.deployment.campaign_package
+        if not package:
+            raise ValueError(
+                "This deployment has no campaign package configured; "
+                "set Deployment.campaign_package to use campaign / FFT methods"
+            )
+        resolved = campaign_addr or self._config.deployment.fft_campaign_addr or package
+        return package, resolved
+
+    def claim_campaign_reward(self, campaign_id: int) -> dict[str, Any]:
+        """Claim a reward from a campaign by ID. The signer must have an allocation in it."""
+        campaign_package, _ = self._campaign_addrs()
+        return self._send_tx(
+            InputEntryFunctionData(
+                function=f"{campaign_package}::campaign_manager::claim_by_id",
+                type_arguments=[],
+                # u64 on the wire as a decimal string, matching the FFT payload builders.
+                function_arguments=[str(campaign_id)],
+            )
+        )
+
+    def open_fft_trial(self, *, owner: str, campaign_addr: str | None = None) -> dict[str, Any]:
+        """Open a Funded First Trade trial for ``owner``.
+
+        The signer must be the owner, or hold a ``TradePerpsAllMarkets`` delegation on the
+        owner's primary subaccount (session key).
+        """
+        campaign_package, resolved = self._campaign_addrs(campaign_addr)
+        return self._send_tx(
+            build_open_trial_payload(
+                campaign_package=campaign_package, campaign_addr=resolved, owner=owner
+            )
+        )
+
+    def claim_fft_unlock(
+        self, *, lock_id: int, owner: str, campaign_addr: str | None = None
+    ) -> dict[str, Any]:
+        """Claim a matured FFT lock for ``owner``. Same signer rule as :meth:`open_fft_trial`."""
+        campaign_package, resolved = self._campaign_addrs(campaign_addr)
+        return self._send_tx(
+            build_claim_unlock_payload(
+                campaign_package=campaign_package,
+                campaign_addr=resolved,
+                lock_id=lock_id,
+                owner=owner,
+            )
+        )
+
+    def settle_fft_trial(
+        self, *, trial_id: int, campaign_addr: str | None = None
+    ) -> dict[str, Any]:
+        """Settle an expired FFT trial — permissionless, any signer works."""
+        campaign_package, resolved = self._campaign_addrs(campaign_addr)
+        return self._send_tx(
+            build_settle_trial_payload(
+                campaign_package=campaign_package, campaign_addr=resolved, trial_id=trial_id
+            )
+        )

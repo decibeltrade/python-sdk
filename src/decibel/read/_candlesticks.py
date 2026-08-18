@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
-from .._utils import get_market_addr
+from .._asset_type import AssetTypeName
+from .._utils import get_market_addr_for_product
 from ._base import BaseReader
 
 if TYPE_CHECKING:
@@ -68,18 +69,48 @@ class CandlesticksReader(BaseReader):
         interval: CandlestickInterval,
         start_time: int,
         end_time: int,
+        hide_outliers: bool = False,
+        asset_type: AssetTypeName = AssetTypeName.PERP,
     ) -> list[Candlestick]:
-        market_addr = get_market_addr(market_name, self.config.deployment.perp_engine_global)
+        """Get candlesticks for a market during a time period.
+
+        The market address is derived from the name per product (perp and spot derive different
+        addresses for the same name) — pass ``asset_type=AssetTypeName.SPOT`` for spot markets,
+        or prefer :meth:`get_by_addr` when you already hold the market row.
+        """
+        market_addr = get_market_addr_for_product(market_name, asset_type, self.config.deployment)
+        return await self.get_by_addr(
+            market_addr,
+            interval=interval,
+            start_time=start_time,
+            end_time=end_time,
+            hide_outliers=hide_outliers,
+        )
+
+    async def get_by_addr(
+        self,
+        market_addr: str,
+        *,
+        interval: CandlestickInterval,
+        start_time: int,
+        end_time: int,
+        hide_outliers: bool = False,
+    ) -> list[Candlestick]:
+        """Get candlesticks by market object address — no name derivation, product-agnostic."""
+        params: dict[str, str] = {
+            "market": market_addr,
+            "interval": interval.value,
+            "startTime": str(start_time),
+            "endTime": str(end_time),
+        }
+        if hide_outliers:
+            params["filterWicks"] = "true"
+            params["nSigma"] = "3.0"
 
         response, _, _ = await self.get_request(
             model=_CandlesticksList,
             url=f"{self.config.trading_http_url}/api/v1/candlesticks",
-            params={
-                "market": market_addr,
-                "interval": interval.value,
-                "startTime": str(start_time),
-                "endTime": str(end_time),
-            },
+            params=params,
         )
         return response.root
 
@@ -91,7 +122,20 @@ class CandlesticksReader(BaseReader):
             Callable[[CandlestickWsMessage], None]
             | Callable[[CandlestickWsMessage], Awaitable[None]]
         ),
+        asset_type: AssetTypeName = AssetTypeName.PERP,
     ) -> Unsubscribe:
-        market_addr = get_market_addr(market_name, self.config.deployment.perp_engine_global)
+        market_addr = get_market_addr_for_product(market_name, asset_type, self.config.deployment)
+        return self.subscribe_by_addr(market_addr, interval, on_data)
+
+    def subscribe_by_addr(
+        self,
+        market_addr: str,
+        interval: CandlestickInterval,
+        on_data: (
+            Callable[[CandlestickWsMessage], None]
+            | Callable[[CandlestickWsMessage], Awaitable[None]]
+        ),
+    ) -> Unsubscribe:
+        """Subscribe to candlesticks by market object address — product-agnostic."""
         topic = f"market_candlestick:{market_addr}:{interval.value}"
         return self.ws.subscribe(topic, CandlestickWsMessage, on_data)
