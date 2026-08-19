@@ -3,7 +3,7 @@
   "campaignPackageAddress": "0x7dd60d4445490318a073a600d6109ff587d21e634a22ea08a1b154cc591b3cf4",
   "network": "mainnet",
   "fullnodeUrl": "https://api.mainnet.aptoslabs.com/v1",
-  "fetchedAt": "2026-08-17T15:59:36.079396Z",
+  "fetchedAt": "2026-08-19T11:27:40.470443Z",
   "abis": {
     "0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06::admin_apis::initialize": {
       "name": "initialize",
@@ -3868,6 +3868,19 @@
       ],
       "return": []
     },
+    "0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06::spot_admin_apis::decrease_market_lot_size": {
+      "name": "decrease_market_lot_size",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06::spot_market::SpotMarket>",
+        "u64"
+      ],
+      "return": []
+    },
     "0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06::spot_admin_apis::migrate_market_to_v2": {
       "name": "migrate_market_to_v2",
       "visibility": "public",
@@ -5381,8 +5394,8 @@
   "errors": [],
   "summary": {
     "totalModules": 17,
-    "totalFunctions": 386,
-    "successful": 386,
+    "totalFunctions": 387,
+    "successful": 387,
     "failed": 0
   },
   "modules": [

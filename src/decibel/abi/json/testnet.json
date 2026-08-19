@@ -3,7 +3,7 @@
   "campaignPackageAddress": "0x6c8e3171c638045f765e1d66e8e71e819eaf0afa54d1914db3c37f3b02a9c5b3",
   "network": "testnet",
   "fullnodeUrl": "https://api.testnet.aptoslabs.com/v1",
-  "fetchedAt": "2026-08-17T15:59:33.673072Z",
+  "fetchedAt": "2026-08-19T11:27:34.579531Z",
   "abis": {
     "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::usdc::burn": {
       "name": "burn",
@@ -446,30 +446,6 @@
         "&signer",
         "address",
         "0x1::string::String"
-      ],
-      "return": []
-    },
-    "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::admin_apis::update_fee_config": {
-      "name": "update_fee_config",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "vector<u128>",
-        "vector<u64>",
-        "vector<u64>",
-        "u128",
-        "vector<u64>",
-        "vector<u64>",
-        "u64",
-        "u64",
-        "bool",
-        "u64",
-        "u64",
-        "u128",
-        "u128"
       ],
       "return": []
     },
@@ -1867,6 +1843,30 @@
       ],
       "return": []
     },
+    "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::admin_apis::update_fee_config": {
+      "name": "update_fee_config",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "vector<u128>",
+        "vector<u64>",
+        "vector<u64>",
+        "u128",
+        "vector<u64>",
+        "vector<u64>",
+        "u64",
+        "u64",
+        "bool",
+        "u64",
+        "u64",
+        "u128",
+        "u128"
+      ],
+      "return": []
+    },
     "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::admin_apis::update_mark_for_chainlink_oracle": {
       "name": "update_mark_for_chainlink_oracle",
       "visibility": "private",
@@ -2044,6 +2044,27 @@
         "vector<address>",
         "vector<address>",
         "bool",
+        "u128"
+      ],
+      "return": []
+    },
+    "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::admin_apis::update_perp_product_fee_config": {
+      "name": "update_perp_product_fee_config",
+      "visibility": "private",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "u128",
+        "vector<u64>",
+        "vector<u64>",
+        "u64",
+        "u64",
+        "bool",
+        "u64",
+        "u64",
+        "u128",
         "u128"
       ],
       "return": []
@@ -4054,17 +4075,16 @@
       ],
       "return": []
     },
-    "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::spot_admin_apis::update_fee_config": {
-      "name": "update_fee_config",
+    "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::spot_admin_apis::decrease_market_lot_size": {
+      "name": "decrease_market_lot_size",
       "visibility": "public",
       "is_entry": true,
       "is_view": false,
       "generic_type_params": [],
       "params": [
         "&signer",
-        "vector<u128>",
-        "vector<u64>",
-        "vector<u64>"
+        "0x1::object::Object<0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::spot_market::SpotMarket>",
+        "u64"
       ],
       "return": []
     },
@@ -4234,6 +4254,20 @@
       "params": [
         "&signer",
         "bool"
+      ],
+      "return": []
+    },
+    "0xe7da2794b1d8af76532ed95f38bfdf1136abfd8ea3a240189971988a83101b7f::spot_admin_apis::update_fee_config": {
+      "name": "update_fee_config",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "vector<u128>",
+        "vector<u64>",
+        "vector<u64>"
       ],
       "return": []
     },
@@ -5567,8 +5601,8 @@
   "errors": [],
   "summary": {
     "totalModules": 18,
-    "totalFunctions": 402,
-    "successful": 402,
+    "totalFunctions": 404,
+    "successful": 404,
     "failed": 0
   },
   "modules": [
