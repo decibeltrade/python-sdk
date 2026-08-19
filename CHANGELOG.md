@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-08-19
 
 Brings the Python SDK to parity with the TypeScript SDK: spot trading plus the readers and write
 methods that had not been ported.
@@ -55,7 +55,8 @@ methods that had not been ported.
   `user_bulk_orders.get_status()` / `.get_fills()`.
 - **New write methods**: `update_order`, `withdraw_non_collateral`, `admin_create_subaccount`,
   `claim_campaign_reward`, `open_fft_trial`, `claim_fft_unlock` and `settle_fft_trial`.
-- Examples for spot reads and writes, and a spot trading section in the README.
+- Examples for spot reads and writes, a spot trading section in the README, a market maker example, and a buy-low-sell-high bot example with validation and safety guards.
+- Comprehensive REST and WebSocket API specifications, behavioral tests, and testnet integration coverage.
 
 ### Changed
 
@@ -66,6 +67,9 @@ methods that had not been ported.
   `Deployment` directly (rather than via `_create_deployment` or the bundled `TESTNET_CONFIG` /
   `MAINNET_CONFIG`) must now supply it — `get_spot_engine_global_address(package)` derives it. The
   new `campaign_package` and `fft_campaign_addr` fields are optional and default to unset.
+- **Breaking: `NETNA_CONFIG` is no longer available.** Use `TESTNET_CONFIG` instead; bundled ABIs now cover testnet and mainnet.
+- Shared HTTP clients reduce SDK connection setup overhead.
+- Updated bundled testnet and mainnet ABIs from the live Aptos deployments; transaction confirmation retries, WebSocket lifecycle handling, reader request models, and simulation timeouts were improved.
 
 ### Fixed
 
@@ -87,6 +91,8 @@ methods that had not been ported.
 - The funded-first-trade on-chain lock scan no longer aborts on a single unreadable lock struct —
   it skips the entry, matching the TypeScript fallback. This is already the degraded path, so one
   bad entry sinking the whole scan defeated its purpose.
+- Builder-fee basis-point conversion, additional REST-reader models and query parameters, order-status behavior, and fee-payer request handling.
+- Synchronized the SDK runtime version with distribution metadata.
 
 ## [0.2.1] - 2026-04-08
 
@@ -102,5 +108,6 @@ methods that had not been ported.
 
 Configurable transaction timeouts, Aptos contract ABI and registry updates for testnet and mainnet, custom submit/confirm exceptions, and CI improvements including release tagging. See the [v0.2.0](https://github.com/decibeltrade/python-sdk/releases/tag/v0.2.0) release on GitHub.
 
+[0.3.0]: https://github.com/decibeltrade/python-sdk/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/decibeltrade/python-sdk/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/decibeltrade/python-sdk/releases/tag/v0.2.0
