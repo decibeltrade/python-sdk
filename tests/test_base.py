@@ -78,7 +78,8 @@ def _module_response(status_code: int = 200, functions: Any = None) -> httpx.Res
 
 
 def _make_sdk(config: Any, account: Any, opts: Any = None) -> BaseSDK:
-    with patch("decibel._base.AbiRegistry"), patch("decibel._base.RestClient"):
+    with patch("decibel._base.AbiRegistry"), patch("decibel._base.RestClient") as mock_rest:
+        mock_rest.return_value.close = AsyncMock()
         sdk = BaseSDK(config=config, account=account, opts=opts)
     return sdk
 

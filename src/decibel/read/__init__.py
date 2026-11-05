@@ -386,7 +386,10 @@ class DecibelReadDex:
         try:
             await self.ws.close()
         finally:
-            await self._http_client.aclose()
+            try:
+                await self._aptos.close()
+            finally:
+                await self._http_client.aclose()
 
     async def __aenter__(self) -> DecibelReadDex:
         return self

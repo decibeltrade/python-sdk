@@ -189,8 +189,11 @@ class BaseSDK:
         self._time_delta_ms = value
 
     async def close(self) -> None:
-        if self._owns_http_client:
-            await self._http_client.aclose()
+        try:
+            await self._aptos.close()
+        finally:
+            if self._owns_http_client:
+                await self._http_client.aclose()
 
     async def __aenter__(self) -> BaseSDK:
         return self
